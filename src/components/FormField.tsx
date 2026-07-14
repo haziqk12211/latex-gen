@@ -1,6 +1,48 @@
 import type { ReactNode } from "react";
 import type React from "react";
 
+export function Checkbox({
+  label,
+  checked=true,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer select-none">
+      <span
+        onClick={() => onChange(!checked)}
+        className={`w-[15px] h-[15px] rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${
+          checked
+            ? "bg-[#0f766e] border-[#0f766e]"
+            : "bg-white border-[#cbd5e1]"
+        }`}
+      >
+        {checked && (
+          <svg width="9" height="9" viewBox="0 0 11 11" fill="none">
+            <path
+              d="M1.5 5.5l3 3 5-6"
+              stroke="white"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      <span className="text-[13px] text-[#0f172a]">{label}</span>
+    </label>
+  );
+}
+
 type LabelProps = {
   label: string;
   required?: boolean;

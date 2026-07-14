@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Page1 from "./pages/Page1";
 import Page2 from "./pages/Page2";
+import Page3 from "./pages/Page3";
 
 export type FormData = {
   // Page 1
@@ -44,6 +45,7 @@ export type FormData = {
   conclusion: string;
   keySections: string[];
   bibliography: File | null;
+  bibliographyText: string;
   dataAvailability: string;
   fundingStatement: string;
   conflictOfInterest: string;
@@ -89,6 +91,7 @@ const initialData: FormData = {
   conclusion: "",
   keySections: [],
   bibliography: null,
+  bibliographyText: "",
   dataAvailability: "",
   fundingStatement: "",
   conflictOfInterest: "",
@@ -107,8 +110,6 @@ const NAV_ITEMS = [
 const STEP_LABELS = ["Guidelines", "Technical Specs", "Manuscript"];
 
 export default function App() {
-  // NOTE: Page3 doesn't exist yet — Page2 renders in its place so the
-  // app compiles and runs. Swap this back in once Page3 is built.
   const [page, setPage] = useState(1);
   const [formData, setFormData] =
     useState<FormData>(initialData);
@@ -219,20 +220,26 @@ export default function App() {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            {/* Page3 isn't built yet — Page2 renders in its place for now */}
             {page === 1 && (
               <Page1
                 data={formData}
                 update={updateForm}
-                onNext={() => setPage((p) => Math.min(p + 1, 3))}
+                onNext={() => setPage(2)}
               />
             )}
-            {page >= 2 && (
+            {page === 2 && (
               <Page2
                 data={formData}
                 update={updateForm}
-                onNext={() => setPage((p) => Math.min(p + 1, 3))}
-                onBack={() => setPage((p) => Math.max(p - 1, 1))}
+                onNext={() => setPage(3)}
+                onBack={() => setPage(1)}
+              />
+            )}
+            {page === 3 && (
+              <Page3
+                data={formData}
+                update={updateForm}
+                onBack={() => setPage(2)}
               />
             )}
           </div>
@@ -241,6 +248,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
