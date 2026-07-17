@@ -3,7 +3,7 @@ import type React from "react";
 
 export function Checkbox({
   label,
-  checked=true,
+  checked = true,
   onChange,
 }: {
   label: string;
@@ -12,8 +12,8 @@ export function Checkbox({
 }) {
   return (
     <label className="flex items-center gap-2 cursor-pointer select-none">
+      {/* Visual checkbox - no onClick needed */}
       <span
-        onClick={() => onChange(!checked)}
         className={`w-[15px] h-[15px] rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${
           checked
             ? "bg-[#0f766e] border-[#0f766e]"
@@ -32,12 +32,15 @@ export function Checkbox({
           </svg>
         )}
       </span>
+
+      {/* Hidden real checkbox */}
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="sr-only"
       />
+
       <span className="text-[13px] text-[#0f172a]">{label}</span>
     </label>
   );

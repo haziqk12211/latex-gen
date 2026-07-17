@@ -32,6 +32,171 @@ const emptyAuthor: Author = {
   corresponding: false,
 };
 
+type DeclarationKey =
+  | "dataAvailability"
+  | "fundingStatement"
+  | "conflictOfInterest"
+  | "ethicsApproval"
+  | "consentForPublication"
+  | "authorContributions";
+
+type AllDeclarationKeys = DeclarationKey | "creditStatement";
+
+const DECLARATIONS: { key: DeclarationKey; label: string }[] = [
+  { key: "dataAvailability", label: "Data Availability" },
+  { key: "fundingStatement", label: "Funding" },
+  { key: "conflictOfInterest", label: "Conflict of Interest" },
+  { key: "ethicsApproval", label: "Ethics Approval" },
+  { key: "consentForPublication", label: "Consent for Publication" },
+  { key: "authorContributions", label: "Author Contributions" },
+];
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Standard ORCID format: 0000-0002-1825-0097 (last character may be X)
+const ORCID_REGEX = /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/;
+
+const PAKISTANI_UNIVERSITIES = [
+  "Quaid-i-Azam University, Islamabad",
+  "University of the Punjab, Lahore",
+  "University of Karachi, Karachi",
+  "Lahore University of Management Sciences (LUMS), Lahore",
+  "National University of Sciences and Technology (NUST), Islamabad",
+  "COMSATS University Islamabad",
+  "FAST National University of Computer and Emerging Sciences (FAST-NUCES)",
+  "Ghulam Ishaq Khan Institute of Engineering Sciences and Technology (GIKI), Topi",
+  "University of Engineering and Technology (UET), Lahore",
+  "NED University of Engineering and Technology, Karachi",
+  "University of Agriculture, Faisalabad",
+  "Aga Khan University, Karachi",
+  "Institute of Business Administration (IBA), Karachi",
+  "Bahauddin Zakariya University, Multan",
+  "University of Peshawar, Peshawar",
+  "University of Sindh, Jamshoro",
+  "Balochistan University of Information Technology, Engineering and Management Sciences, Quetta",
+  "University of Balochistan, Quetta",
+  "International Islamic University, Islamabad",
+  "Pakistan Institute of Engineering and Applied Sciences (PIEAS), Islamabad",
+  "University of Management and Technology (UMT), Lahore",
+  "University of Central Punjab (UCP), Lahore",
+  "Government College University (GCU), Lahore",
+  "Government College University (GCU), Faisalabad",
+  "Fatima Jinnah Women University, Rawalpindi",
+  "Air University, Islamabad",
+  "Bahria University, Islamabad",
+  "Riphah International University, Islamabad",
+  "Foundation University, Islamabad",
+  "Iqra University, Karachi",
+  "Sir Syed University of Engineering and Technology, Karachi",
+  "Dawood University of Engineering and Technology, Karachi",
+  "Mehran University of Engineering and Technology, Jamshoro",
+  "Dow University of Health Sciences, Karachi",
+  "King Edward Medical University, Lahore",
+  "Allama Iqbal Open University, Islamabad",
+  "Virtual University of Pakistan, Lahore",
+  "Preston University, Islamabad",
+  "Superior University, Lahore",
+  "University of Gujrat, Gujrat",
+  "University of Sargodha, Sargodha",
+  "Islamia University of Bahawalpur, Bahawalpur",
+  "Hazara University, Mansehra",
+  "Abdul Wali Khan University, Mardan",
+  "Sarhad University of Science and Information Technology, Peshawar",
+  "University of Malakand, Chakdara",
+  "Shaheed Zulfikar Ali Bhutto Institute of Science and Technology (SZABIST), Karachi",
+  "Karakoram International University, Gilgit",
+  "Mirpur University of Science and Technology (MUST), Mirpur",
+  "University of Azad Jammu and Kashmir, Muzaffarabad",
+  "Pir Mehr Ali Shah Arid Agriculture University, Rawalpindi",
+];
+
+
+function AffiliationCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const isKnownUniversity = PAKISTANI_UNIVERSITIES.includes(value);
+  const [mode, setMode] = useState<"search" | "manual">(
+    value && !isKnownUniversity ? "manual" : "search"
+  );
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+
+  const matches = PAKISTANI_UNIVERSITIES.filter((u) =>
+    u.toLowerCase().includes(query.toLowerCase())
+  ).slice(0, 8);
+
+  if (mode === "manual") {
+    return (
+      <div className="flex flex-col gap-1">
+        <Input
+          placeholder="University, Department, City, Country"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <button
+          type="button"
+          className="text-[12px] text-[#0f766e] text-left hover:underline w-fit"
+          onClick={() => {
+            setMode("search");
+            setQuery("");
+            onChange("");
+          }}
+        >
+          Choose from list instead
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        placeholder="Search Pakistani universities…"
+        value={query}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+      />
+      {open && (
+        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-[#e2e8f0] rounded-lg shadow-lg">
+          {matches.map((uni) => (
+            <button
+              key={uni}
+              type="button"
+              onMouseDown={() => {
+                onChange(uni);
+                setQuery(uni);
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-[13px] text-[#0f172a] hover:bg-[#f0fdfa]"
+            >
+              {uni}
+            </button>
+          ))}
+          <button
+            type="button"
+            onMouseDown={() => {
+              setMode("manual");
+              setQuery("");
+              onChange("");
+              setOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 text-[13px] font-semibold text-[#0f766e] hover:bg-[#f0fdfa] border-t border-[#e2e8f0]"
+          >
+            Other (enter manually)
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function wordCount(text: string) {
   const trimmed = text.trim();
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
@@ -45,10 +210,40 @@ export default function Page3({ data, update, onBack }: Props) {
   const titleWords = wordCount(data.title);
   const keywordCount = data.keywords.filter((k) => k.trim() !== "").length;
 
+  // Which declaration fields the user has opted to include - starts based
+  // on whatever data already has content (e.g. pre-filled from extraction),
+  // so nothing the user already entered gets hidden on load.
+  const [declarationEnabled, setDeclarationEnabled] = useState<
+    Record<AllDeclarationKeys, boolean>
+  >(() => {
+    const keys: AllDeclarationKeys[] = [
+      ...DECLARATIONS.map((d) => d.key),
+      "creditStatement",
+    ];
+    return Object.fromEntries(
+      keys.map((key) => [key, Boolean((data[key] as string)?.trim())])
+    ) as Record<AllDeclarationKeys, boolean>;
+  });
+
+  const toggleDeclaration = (key: AllDeclarationKeys, checked: boolean) => {
+    setDeclarationEnabled((prev) => ({ ...prev, [key]: checked }));
+    // Clear the field's value when the user turns it off, so unchecked
+    // declarations don't silently carry stale text through to submission.
+    if (!checked) {
+      update({ [key]: "" } as Partial<FormData>);
+    }
+  };
+
   const completionChecks = [
     data.title.trim() !== "",
     data.authors.length > 0 &&
-      data.authors.every((a) => a.firstName && a.lastName && a.email),
+      data.authors.every(
+        (a) =>
+          a.firstName &&
+          a.lastName &&
+          EMAIL_REGEX.test(a.email) &&
+          (a.orcidId === "" || ORCID_REGEX.test(a.orcidId))
+      ),
     data.abstract.trim() !== "" && !abstractOverLimit,
     data.conclusion.trim() !== "",
     keywordCount > 0,
@@ -60,7 +255,7 @@ export default function Page3({ data, update, onBack }: Props) {
     data.ethicsApproval.trim() !== "",
     data.consentForPublication.trim() !== "",
     data.authorContributions.trim() !== "",
-    data.creditStatement.trim() !== "",
+    data.publisher !== "Wiley" || data.creditStatement.trim() !== "",
   ];
   const completionPercent = Math.round(
     (completionChecks.filter(Boolean).length / completionChecks.length) * 100
@@ -135,68 +330,86 @@ export default function Page3({ data, update, onBack }: Props) {
 
             {data.authors.length > 0 && (
               <div className="flex flex-col gap-5">
-                {data.authors.map((author, i) => (
-                  <div
-                    key={i}
-                    className="border border-[#e2e8f0] rounded-xl p-5 flex flex-col gap-4"
-                  >
-                    <p className="text-[12px] font-semibold uppercase tracking-wide text-[#64748b]">
-                      Author {i + 1}
-                    </p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field label="First Name">
-                        <Input
-                          value={author.firstName}
-                          onChange={(e) =>
-                            updateAuthor(i, { firstName: e.target.value })
+                {data.authors.map((author, i) => {
+                  const emailTouched = author.email.trim() !== "";
+                  const emailValid = EMAIL_REGEX.test(author.email);
+                  const orcidTouched = author.orcidId.trim() !== "";
+                  const orcidValid = ORCID_REGEX.test(author.orcidId);
+
+                  return (
+                    <div
+                      key={i}
+                      className="border border-[#e2e8f0] rounded-xl p-5 flex flex-col gap-4"
+                    >
+                      <p className="text-[12px] font-semibold uppercase tracking-wide text-[#64748b]">
+                        Author {i + 1}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="First Name">
+                          <Input
+                            value={author.firstName}
+                            onChange={(e) =>
+                              updateAuthor(i, { firstName: e.target.value })
+                            }
+                          />
+                        </Field>
+                        <Field label="Last Name">
+                          <Input
+                            value={author.lastName}
+                            onChange={(e) =>
+                              updateAuthor(i, { lastName: e.target.value })
+                            }
+                          />
+                        </Field>
+                        <Field label="Email Address">
+                          <Input
+                            type="email"
+                            value={author.email}
+                            error={emailTouched && !emailValid}
+                            onChange={(e) =>
+                              updateAuthor(i, { email: e.target.value })
+                            }
+                          />
+                          {emailTouched && !emailValid && (
+                            <p className="text-[12px] text-[#dc2626] mt-1">
+                              Enter a valid email address (e.g. name@university.edu)
+                            </p>
+                          )}
+                        </Field>
+                        <Field label="ORCID ID">
+                          <Input
+                            placeholder="0000-0000-0000-0000"
+                            value={author.orcidId}
+                            error={orcidTouched && !orcidValid}
+                            onChange={(e) =>
+                              updateAuthor(i, { orcidId: e.target.value })
+                            }
+                          />
+                          {orcidTouched && !orcidValid && (
+                            <p className="text-[12px] text-[#dc2626] mt-1">
+                              Format must be 0000-0000-0000-0000 (last character may be X)
+                            </p>
+                          )}
+                        </Field>
+                      </div>
+                      <Field label="Affiliation">
+                        <AffiliationCombobox
+                          value={author.affiliation}
+                          onChange={(value) =>
+                            updateAuthor(i, { affiliation: value })
                           }
                         />
                       </Field>
-                      <Field label="Last Name">
-                        <Input
-                          value={author.lastName}
-                          onChange={(e) =>
-                            updateAuthor(i, { lastName: e.target.value })
-                          }
-                        />
-                      </Field>
-                      <Field label="Email Address">
-                        <Input
-                          type="email"
-                          value={author.email}
-                          onChange={(e) =>
-                            updateAuthor(i, { email: e.target.value })
-                          }
-                        />
-                      </Field>
-                      <Field label="ORCID ID">
-                        <Input
-                          placeholder="0000-0000-0000-0000"
-                          value={author.orcidId}
-                          onChange={(e) =>
-                            updateAuthor(i, { orcidId: e.target.value })
-                          }
-                        />
-                      </Field>
-                    </div>
-                    <Field label="Affiliation">
-                      <Input
-                        placeholder="University, Department, City, Country"
-                        value={author.affiliation}
-                        onChange={(e) =>
-                          updateAuthor(i, { affiliation: e.target.value })
+                      <Checkbox
+                        label="Corresponding author"
+                        checked={author.corresponding}
+                        onChange={(checked) =>
+                          updateAuthor(i, { corresponding: checked })
                         }
                       />
-                    </Field>
-                    <Checkbox
-                      label="Corresponding author"
-                      checked={author.corresponding}
-                      onChange={(checked) =>
-                        updateAuthor(i, { corresponding: checked })
-                      }
-                    />
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -333,59 +546,50 @@ export default function Page3({ data, update, onBack }: Props) {
           </h1>
           <div className="h-px bg-[#e2e8f0] -mt-4 mb-6" />
 
-          <div className="grid grid-cols-2 gap-5">
-            <Field label="Data Availability">
-              <Input
-                value={data.dataAvailability}
-                onChange={(e) => update({ dataAvailability: e.target.value })}
-              />
-            </Field>
-            <Field label="Funding">
-              <Input
-                value={data.fundingStatement}
-                onChange={(e) => update({ fundingStatement: e.target.value })}
-              />
-            </Field>
-            <Field label="Conflict of Interest">
-              <Input
-                value={data.conflictOfInterest}
-                onChange={(e) =>
-                  update({ conflictOfInterest: e.target.value })
-                }
-              />
-            </Field>
-            <Field label="Ethics Approval">
-              <Input
-                value={data.ethicsApproval}
-                onChange={(e) => update({ ethicsApproval: e.target.value })}
-              />
-            </Field>
-            <Field label="Consent for Publication">
-              <Input
-                value={data.consentForPublication}
-                onChange={(e) =>
-                  update({ consentForPublication: e.target.value })
-                }
-              />
-            </Field>
-            <Field label="Author Contributions">
-              <Input
-                value={data.authorContributions}
-                onChange={(e) =>
-                  update({ authorContributions: e.target.value })
-                }
-              />
-            </Field>
-          </div>
-          <div className="mt-5">
-            <Field label="Credit Statement">
-              <Textarea
-                rows={3}
-                placeholder="Contributor Roles Taxonomy details…"
-                value={data.creditStatement}
-                onChange={(e) => update({ creditStatement: e.target.value })}
-              />
-            </Field>
+          <div className="flex flex-col gap-5">
+            {DECLARATIONS.map(({ key, label }) => (
+              <div key={key} className="flex flex-col gap-2">
+                <Checkbox
+                  label={`Include ${label} statement`}
+                  checked={declarationEnabled[key]}
+                  onChange={(checked) => toggleDeclaration(key, checked)}
+                />
+                {declarationEnabled[key] && (
+                  <Field label={label}>
+                    <Input
+                      value={data[key]}
+                      onChange={(e) =>
+                        update({ [key]: e.target.value } as Partial<FormData>)
+                      }
+                    />
+                  </Field>
+                )}
+              </div>
+            ))}
+
+            {data.publisher === "Elsevier" && (
+              <div className="flex flex-col gap-2">
+                <Checkbox
+                  label="Include Credit statement"
+                  checked={declarationEnabled.creditStatement}
+                  onChange={(checked) =>
+                    toggleDeclaration("creditStatement", checked)
+                  }
+                />
+                {declarationEnabled.creditStatement && (
+                  <Field label="Credit Statement">
+                    <Textarea
+                      rows={3}
+                      placeholder="Contributor Roles Taxonomy details…"
+                      value={data.creditStatement}
+                      onChange={(e) =>
+                        update({ creditStatement: e.target.value })
+                      }
+                    />
+                  </Field>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -481,18 +685,8 @@ export default function Page3({ data, update, onBack }: Props) {
           </div>
         </div>
 
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden">
-          <div className="h-32 bg-gradient-to-br from-[#cbd5e1] to-[#94a3b8]" />
-          <p className="text-[13px] font-semibold text-[#0f172a] px-4 py-3">
-            Preview Layout
-          </p>
-        </div>
-
         <button className="h-9 bg-[#0f766e] hover:bg-[#0d5f58] text-white text-[13px] font-semibold rounded-lg transition-colors">
           Submit Manuscript
-        </button>
-        <button className="h-9 border border-[#0f766e] text-[#0f766e] hover:bg-[#f0fdfa] text-[13px] font-semibold rounded-lg transition-colors">
-          Download PDF Draft
         </button>
         <button className="h-9 border border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc] text-[13px] font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none">

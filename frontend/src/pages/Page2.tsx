@@ -7,9 +7,16 @@ interface Props {
   update: (updates: Partial<FormData>) => void;
   onNext: () => void;
   onBack: () => void;
+  unresolvedFields?: string[];
 }
 
-export default function Page2({ data, update, onNext, onBack }: Props) {
+export default function Page2({
+  data,
+  update,
+  onNext,
+  onBack,
+  unresolvedFields = [],
+}: Props) {
   const requiredFilled =
     data.columnLayout !== "" &&
     data.lineSpacing !== "" &&
@@ -31,6 +38,35 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (requiredFilled) onNext();
+  };
+
+  // Renders a small note under a field if the extractor couldn't find it
+  // in the guideline text - reused wherever a single field might be flagged.
+  const UnresolvedNote = ({ field }: { field: string }) =>
+    unresolvedFields.includes(field) ? (
+      <p className="text-xs text-[#b45309] mt-1">
+        Not found in guidelines — please verify
+      </p>
+    ) : null;
+
+  // For grouped fields (margins, font sizes) - lists which specific
+  // sub-fields were unresolved, since those share one Field wrapper.
+  const UnresolvedGroupNote = ({
+    fields,
+    labels,
+  }: {
+    fields: string[];
+    labels: string[];
+  }) => {
+    const missing = fields
+      .map((f, i) => (unresolvedFields.includes(f) ? labels[i] : null))
+      .filter(Boolean);
+    if (missing.length === 0) return null;
+    return (
+      <p className="text-xs text-[#b45309] mt-1">
+        Not found in guidelines, please verify: {missing.join(", ")}
+      </p>
+    );
   };
 
   return (
@@ -55,6 +91,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="double">Double Column (IEEE Standard)</option>
                 <option value="single">Single Column</option>
               </Select>
+              <UnresolvedNote field="columnLayout" />
             </Field>
             <Field label="Line Spacing">
               <Select
@@ -69,6 +106,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="single">Single (1.0)</option>
                 <option value="double">Double (2.0)</option>
               </Select>
+              <UnresolvedNote field="lineSpacing" />
             </Field>
           </div>
 
@@ -103,6 +141,10 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 onChange={(e) => update({ marginRight: e.target.value })}
               />
             </div>
+            <UnresolvedGroupNote
+              fields={["marginTop", "marginBottom", "marginLeft", "marginRight"]}
+              labels={["Top", "Bottom", "Left", "Right"]}
+            />
           </Field>
         </Section>
 
@@ -117,6 +159,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
               <option value="Arial">Arial</option>
               <option value="Computer Modern">Computer Modern</option>
             </Select>
+            <UnresolvedNote field="fontFamily" />
           </Field>
 
           <Field label="Font Sizes (pt)">
@@ -154,6 +197,15 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 }
               />
             </div>
+            <UnresolvedGroupNote
+              fields={[
+                "fontSizeTitle",
+                "fontSizeText",
+                "fontSizeFigureCaption",
+                "fontSizeTableCaption",
+              ]}
+              labels={["Title", "Text", "Fig Caption", "Tbl Caption"]}
+            />
           </Field>
         </Section>
 
@@ -175,6 +227,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="Harvard">Harvard</option>
                 <option value="Vancouver">Vancouver</option>
               </Select>
+              <UnresolvedNote field="referencingStyle" />
             </Field>
             <Field label="Keyword Separator">
               <Select
@@ -190,6 +243,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="semicolon">Semicolon (;)</option>
                 <option value="comma">Comma (,)</option>
               </Select>
+              <UnresolvedNote field="keywordSeparator" />
             </Field>
           </div>
 
@@ -205,6 +259,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="acmart.cls">acmart.cls</option>
                 <option value="elsarticle.cls">elsarticle.cls</option>
               </Select>
+              <UnresolvedNote field="documentClass" />
             </Field>
             <Field label="Highlights Required">
               <Select
@@ -219,6 +274,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </Select>
+              <UnresolvedNote field="highlights" />
             </Field>
           </div>
 
@@ -237,6 +293,7 @@ export default function Page2({ data, update, onNext, onBack }: Props) {
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </Select>
+              <UnresolvedNote field="orcidRequired" />
             </Field>
           </div>
         </Section>

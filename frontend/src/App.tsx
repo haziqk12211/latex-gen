@@ -114,6 +114,10 @@ export default function App() {
   const [formData, setFormData] =
     useState<FormData>(initialData);
 
+  // Tracks which Page 2 fields the AI extractor couldn't find in the
+  // pasted guidelines, so Page2 can flag them for the user to verify.
+  const [unresolvedFields, setUnresolvedFields] = useState<string[]>([]);
+
   const updateForm = (updates: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
@@ -225,6 +229,7 @@ export default function App() {
                 data={formData}
                 update={updateForm}
                 onNext={() => setPage(2)}
+                setUnresolvedFields={setUnresolvedFields}
               />
             )}
             {page === 2 && (
@@ -233,6 +238,7 @@ export default function App() {
                 update={updateForm}
                 onNext={() => setPage(3)}
                 onBack={() => setPage(1)}
+                unresolvedFields={unresolvedFields}
               />
             )}
             {page === 3 && (
