@@ -258,6 +258,7 @@ export default function Page2({
                 <option value="article.cls">article.cls</option>
                 <option value="acmart.cls">acmart.cls</option>
                 <option value="elsarticle.cls">elsarticle.cls</option>
+                <option value="WileyNJDv5">WileyNJDv5</option>
               </Select>
               <UnresolvedNote field="documentClass" />
             </Field>

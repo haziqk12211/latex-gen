@@ -12,6 +12,7 @@ interface Props {
   data: FormData;
   update: (updates: Partial<FormData>) => void;
   onBack: () => void;
+  requirements?: Record<string, boolean | null>;
 }
 
 const KEY_SECTIONS = [
@@ -32,13 +33,16 @@ const emptyAuthor: Author = {
   corresponding: false,
 };
 
+// One entry per declaration/statement field - drives the checkbox-gated
+// list below so each starts hidden until the user opts in.
 type DeclarationKey =
   | "dataAvailability"
   | "fundingStatement"
   | "conflictOfInterest"
   | "ethicsApproval"
   | "consentForPublication"
-  | "authorContributions";
+  | "authorContributions"
+  | "generativeAI";
 
 type AllDeclarationKeys = DeclarationKey | "creditStatement";
 
@@ -49,12 +53,17 @@ const DECLARATIONS: { key: DeclarationKey; label: string }[] = [
   { key: "ethicsApproval", label: "Ethics Approval" },
   { key: "consentForPublication", label: "Consent for Publication" },
   { key: "authorContributions", label: "Author Contributions" },
+  { key: "generativeAI", label: "Generative AI Use" },
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Standard ORCID format: 0000-0002-1825-0097 (last character may be X)
 const ORCID_REGEX = /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/;
 
+// Well-known HEC-recognized Pakistani universities. This is not guaranteed
+// to be the complete official list (HEC's own list currently has 184
+// entries, loaded dynamically on their site) - extend this array as needed.
+// The "Other" option below covers anything not yet in this list.
 const PAKISTANI_UNIVERSITIES = [
   "Quaid-i-Azam University, Islamabad",
   "University of the Punjab, Lahore",
@@ -109,7 +118,8 @@ const PAKISTANI_UNIVERSITIES = [
   "Pir Mehr Ali Shah Arid Agriculture University, Rawalpindi",
 ];
 
-
+// Small searchable dropdown for affiliation - filters the list above as
+// the user types, always offers an "Other" fallback to type manually.
 function AffiliationCombobox({
   value,
   onChange,
@@ -202,7 +212,7 @@ function wordCount(text: string) {
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
-export default function Page3({ data, update, onBack }: Props) {
+export default function Page3({ data, update, onBack, requirements = {} }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abstractWords = wordCount(data.abstract);
   const abstractLimit = 250;
@@ -210,9 +220,11 @@ export default function Page3({ data, update, onBack }: Props) {
   const titleWords = wordCount(data.title);
   const keywordCount = data.keywords.filter((k) => k.trim() !== "").length;
 
-  // Which declaration fields the user has opted to include - starts based
-  // on whatever data already has content (e.g. pre-filled from extraction),
-  // so nothing the user already entered gets hidden on load.
+  // Which declaration fields the user has opted to include. Priority:
+  // 1) if the guidelines explicitly said this is required, pre-check it
+  //    automatically (before the user does anything)
+  // 2) otherwise, fall back to whether the field already has content
+  //    (e.g. manually filled in on a previous visit to this page)
   const [declarationEnabled, setDeclarationEnabled] = useState<
     Record<AllDeclarationKeys, boolean>
   >(() => {
@@ -221,7 +233,12 @@ export default function Page3({ data, update, onBack }: Props) {
       "creditStatement",
     ];
     return Object.fromEntries(
-      keys.map((key) => [key, Boolean((data[key] as string)?.trim())])
+      keys.map((key) => {
+        const requirementKey = `${key}Required`;
+        const isRequired = requirements[requirementKey] === true;
+        const hasContent = Boolean((data[key] as string)?.trim());
+        return [key, isRequired || hasContent];
+      })
     ) as Record<AllDeclarationKeys, boolean>;
   });
 
@@ -255,7 +272,8 @@ export default function Page3({ data, update, onBack }: Props) {
     data.ethicsApproval.trim() !== "",
     data.consentForPublication.trim() !== "",
     data.authorContributions.trim() !== "",
-    data.publisher !== "Wiley" || data.creditStatement.trim() !== "",
+    data.generativeAI.trim() !== "",
+    data.publisher !== "Elsevier" || data.creditStatement.trim() !== "",
   ];
   const completionPercent = Math.round(
     (completionChecks.filter(Boolean).length / completionChecks.length) * 100
@@ -570,7 +588,7 @@ export default function Page3({ data, update, onBack }: Props) {
             {data.publisher === "Elsevier" && (
               <div className="flex flex-col gap-2">
                 <Checkbox
-                  label="Include Credit statement"
+                  label="Include CRediT statement"
                   checked={declarationEnabled.creditStatement}
                   onChange={(checked) =>
                     toggleDeclaration("creditStatement", checked)

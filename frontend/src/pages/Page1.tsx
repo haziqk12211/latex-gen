@@ -3,16 +3,23 @@ import type React from "react";
 import type { FormData } from "../App";
 import { Field, Select, Textarea, Section, NavButton } from "../components/FormField";
 
-const API_BASE_URL = "http://localhost:8000"; 
+const API_BASE_URL = "http://localhost:8000";
 
 interface Props {
   data: FormData;
   update: (updates: Partial<FormData>) => void;
   onNext: () => void;
   setUnresolvedFields?: (fields: string[]) => void;
+  setRequirements?: (requirements: Record<string, boolean | null>) => void;
 }
 
-export default function Page1({ data, update, onNext, setUnresolvedFields }: Props) {
+export default function Page1({
+  data,
+  update,
+  onNext,
+  setUnresolvedFields,
+  setRequirements,
+}: Props) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
 
@@ -55,6 +62,10 @@ export default function Page1({ data, update, onNext, setUnresolvedFields }: Pro
       // the "please verify" note we added earlier.
       setUnresolvedFields?.(result.unresolved ?? []);
 
+      // Let Page 3 know which declarations the guidelines actually
+      // require, so it can pre-check them before the user gets there.
+      setRequirements?.(result.requirements ?? {});
+
       onNext();
     } catch (err) {
       // Extraction failing shouldn't block the user entirely - let them
@@ -87,7 +98,6 @@ export default function Page1({ data, update, onNext, setUnresolvedFields }: Pro
             <option value="Elsevier">Elsevier</option>
             <option value="Springer">Springer</option>
             <option value="ACM">ACM</option>
-            <option value="Wiley">Wiley</option>
           </Select>
         </Field>
 

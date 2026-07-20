@@ -53,6 +53,7 @@ export type FormData = {
   consentForPublication: string;
   authorContributions: string;
   creditStatement: string;
+  generativeAI:string;
 };
 
 export type Author = {
@@ -99,6 +100,7 @@ const initialData: FormData = {
   consentForPublication: "",
   authorContributions: "",
   creditStatement: "",
+  generativeAI:"",
 };
 
 const NAV_ITEMS = [
@@ -117,6 +119,10 @@ export default function App() {
   // Tracks which Page 2 fields the AI extractor couldn't find in the
   // pasted guidelines, so Page2 can flag them for the user to verify.
   const [unresolvedFields, setUnresolvedFields] = useState<string[]>([]);
+
+  // Tracks which Page 3 declarations/statements the guidelines actually
+  // require (true/false/null-unknown), so Page3 can pre-check them.
+  const [requirements, setRequirements] = useState<Record<string, boolean | null>>({});
 
   const updateForm = (updates: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -230,6 +236,7 @@ export default function App() {
                 update={updateForm}
                 onNext={() => setPage(2)}
                 setUnresolvedFields={setUnresolvedFields}
+                setRequirements={setRequirements}
               />
             )}
             {page === 2 && (
@@ -246,6 +253,7 @@ export default function App() {
                 data={formData}
                 update={updateForm}
                 onBack={() => setPage(2)}
+                requirements={requirements}
               />
             )}
           </div>
