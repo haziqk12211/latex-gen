@@ -53,7 +53,7 @@ ALLOWED_VALUES: dict[str, list[str]] = {
     "columnLayout": ["single", "double"],
     "lineSpacing": ["single", "double"],
     "keywordSeparator": ["comma", "semicolon"],
-    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls"],
+    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls","WileyNJDv5"],
     "fontFamily": ["Times New Roman", "Arial", "Computer Modern"],
     "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver"],
     "highlights": ["yes", "no"],
