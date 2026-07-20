@@ -38,11 +38,17 @@ REQUIREMENT_FLAGS = [
     "conflictOfInterestRequired",
     "ethicsApprovalRequired",
     "consentForPublicationRequired",
+    "authorContributionsRequired",
     "creditStatementRequired",
+    "generativeAIRequired",
 ]
 
 ALL_FIELDS = FORMATTING_FIELDS + REQUIREMENT_FLAGS
 
+# Mirrors the exact <option> values in Page2's dropdowns - anything the
+# model returns is matched (case-insensitively) against these before being
+# accepted, so a mismatch never silently reaches the frontend as a value
+# that can't be selected in its <Select>.
 ALLOWED_VALUES: dict[str, list[str]] = {
     "columnLayout": ["single", "double"],
     "lineSpacing": ["single", "double"],
@@ -54,16 +60,27 @@ ALLOWED_VALUES: dict[str, list[str]] = {
     "orcidRequired": ["yes", "no"],
 }
 
-NUMERIC_FIELDS = [
+# Fields that must end up as a plain number string for Page2's
+# <MiniInput type="number">. Guideline text almost always states these
+# with a unit ("25mm", "10pt") - HTML number inputs render blank if their
+# value isn't a strictly valid number, so units must be stripped here.
+MARGIN_FIELDS = [
     "marginLeft",
     "marginRight",
     "marginTop",
     "marginBottom",
+]
+
+FONT_SIZE_FIELDS = [
     "fontSizeTitle",
     "fontSizeText",
     "fontSizeFigureCaption",
     "fontSizeTableCaption",
 ]
+
+NUMERIC_FIELDS = MARGIN_FIELDS + FONT_SIZE_FIELDS
+
+INCH_TO_MM = 25.4
 
 
 class ExtractionResult(BaseModel):
@@ -90,9 +107,15 @@ def build_extraction_prompt(guideline_text: str) -> str:
         "(pick whichever is closest if the text names a similar font)\n"
         "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls', "
         "or 'NOT_SPECIFIED'\n"
-        "- For marginLeft, marginRight, marginTop, marginBottom, fontSizeTitle, fontSizeText, "
-        "fontSizeFigureCaption, fontSizeTableCaption: respond with the plain number only, "
-        "with no unit (e.g. '25', not '25mm' or '25 mm')\n"
+        "- For marginLeft, marginRight, marginTop, marginBottom: this application "
+        "only accepts millimeters. If the guideline text states the margin in "
+        "inches (e.g. '1 inch', '1in', '0.5\"'), convert it to millimeters "
+        "yourself using 1 inch = 25.4mm, and report only the millimeter number "
+        "(e.g. '25.4', not '1 inch'). If already stated in mm or cm, convert to "
+        "mm and report the plain number with no unit.\n"
+        "- For fontSizeTitle, fontSizeText, fontSizeFigureCaption, "
+        "fontSizeTableCaption: respond with the plain number only, "
+        "with no unit (e.g. '10', not '10pt')\n"
         "- If a field is not mentioned or cannot be determined, write: fieldName: NOT_SPECIFIED\n"
         "- Do not guess or invent values.\n"
         "- For list fields (keywords, keySections), separate values with commas.\n"
@@ -134,9 +157,39 @@ def _normalize_constrained_value(field: str, raw_value: str) -> str | None:
 
 
 def _normalize_numeric_value(raw_value: str) -> str | None:
-    """Strips units like 'pt' or 'mm' and validates it's actually a number."""
+    """Strips units like 'pt' and validates it's actually a number."""
     match = re.search(r"[\d.]+", raw_value)
     return match.group() if match else None
+
+
+def _normalize_margin_value(raw_value: str) -> str | None:
+    """
+    Extracts the number and converts to millimeters if the value was
+    given in inches. The prompt already asks the model to do this
+    conversion itself, but this is a code-level safety net in case the
+    model returns something like '1in' or '0.5"' unconverted.
+    """
+    match = re.search(r"[\d.]+", raw_value)
+    if not match:
+        return None
+    number = float(match.group())
+
+    # Check whatever immediately follows the number, rather than
+    # searching the whole string - avoids missing cases like '1in' with
+    # no space, and avoids false positives from unrelated text.
+    remainder = raw_value[match.end():].strip().lower()
+    is_inches = (
+        remainder.startswith("in")  # catches 'in', 'in.', 'inch', 'inches'
+        or remainder.startswith('"')
+        or remainder.startswith("″")  # unicode double-prime, sometimes used for inches
+    )
+
+    if is_inches:
+        number = round(number * INCH_TO_MM, 1)
+
+    # Return as a clean integer string when possible (e.g. "25" not "25.0"),
+    # otherwise keep one decimal place.
+    return str(int(number)) if number == int(number) else str(number)
 
 
 def parse_extraction_response(raw_text: str) -> ExtractionResult:
@@ -165,7 +218,9 @@ def parse_extraction_response(raw_text: str) -> ExtractionResult:
             formatting[field] = ""  # leave blank for the user to fill in
             continue
 
-        if field in NUMERIC_FIELDS:
+        if field in MARGIN_FIELDS:
+            cleaned = _normalize_margin_value(raw_value)
+        elif field in FONT_SIZE_FIELDS:
             cleaned = _normalize_numeric_value(raw_value)
         elif field in ALLOWED_VALUES:
             cleaned = _normalize_constrained_value(field, raw_value)
@@ -195,6 +250,14 @@ def parse_extraction_response(raw_text: str) -> ExtractionResult:
 
 
 def call_groq_extraction(guideline_text: str) -> str:
+    if not GROQ_API_KEY:
+        raise RuntimeError(
+            "GROQ_API_KEY is not set. Check that your .env file exists in "
+            "the same folder as this script, contains a line exactly like "
+            "'GROQ_API_KEY=your-key-here' (no quotes, no spaces around '='), "
+            "and that the server has been restarted since it was added."
+        )
+
     client = OpenAI(
         base_url="https://api.groq.com/openai/v1",
         api_key=GROQ_API_KEY,
