@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from guideline_extraction import router as extraction_router
+from template_generation import router as generation_router
 
 app = FastAPI(title="LaTeX Template Generator API")
 
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(extraction_router)
+app.include_router(generation_router)
 
 
 @app.get("/health")

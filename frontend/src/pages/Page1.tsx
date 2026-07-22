@@ -98,6 +98,7 @@ export default function Page1({
             <option value="Elsevier">Elsevier</option>
             <option value="Springer">Springer</option>
             <option value="ACM">ACM</option>
+            <option value="Wiley">Wiley</option>
           </Select>
         </Field>
 

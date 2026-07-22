@@ -10,6 +10,18 @@ interface Props {
   unresolvedFields?: string[];
 }
 
+const DOCUMENT_CLASSES_BY_PUBLISHER: Record<string, { value: string; label: string }[]> = {
+  IEEE: [{ value: "IEEEtran.cls", label: "IEEEtran.cls" }],
+  ACM: [{ value: "acmart.cls", label: "acmart.cls" }],
+  Elsevier: [{ value: "elsarticle.cls", label: "elsarticle.cls" }],
+  Springer: [{ value: "sn-jnl.cls", label: "sn-jnl.cls" }],
+  Wiley: [{ value: "WileyNJDv5", label: "WileyNJDv5" }],
+};
+
+const FALLBACK_DOCUMENT_CLASSES = [
+  { value: "article.cls", label: "article.cls (generic)" },
+];
+
 export default function Page2({
   data,
   update,
@@ -17,6 +29,23 @@ export default function Page2({
   onBack,
   unresolvedFields = [],
 }: Props) {
+  const availableDocumentClasses =
+    DOCUMENT_CLASSES_BY_PUBLISHER[data.publisher] ?? FALLBACK_DOCUMENT_CLASSES;
+
+  // Column layout options per publisher
+  const getColumnOptions = () => {
+    if (data.publisher === "IEEE") {
+      return [
+        { value: "double", label: "Double Column (IEEE Standard)" },
+        { value: "single", label: "Single Column" },
+      ];
+    }
+    // Other publishers only support double column by default
+    return [{ value: "double", label: "Double Column (Default)" }];
+  };
+
+  const columnOptions = getColumnOptions();
+
   const requiredFilled =
     data.columnLayout !== "" &&
     data.lineSpacing !== "" &&
@@ -88,8 +117,11 @@ export default function Page2({
                 }
               >
                 <option value="">Select layout…</option>
-                <option value="double">Double Column (IEEE Standard)</option>
-                <option value="single">Single Column</option>
+                {columnOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </Select>
               <UnresolvedNote field="columnLayout" />
             </Field>
@@ -254,11 +286,11 @@ export default function Page2({
                 onChange={(e) => update({ documentClass: e.target.value })}
               >
                 <option value="">Select class…</option>
-                <option value="IEEEtran.cls">IEEEtran.cls</option>
-                <option value="article.cls">article.cls</option>
-                <option value="acmart.cls">acmart.cls</option>
-                <option value="elsarticle.cls">elsarticle.cls</option>
-                <option value="WileyNJDv5">WileyNJDv5</option>
+                {availableDocumentClasses.map((cls) => (
+                  <option key={cls.value} value={cls.value}>
+                    {cls.label}
+                  </option>
+                ))}
               </Select>
               <UnresolvedNote field="documentClass" />
             </Field>

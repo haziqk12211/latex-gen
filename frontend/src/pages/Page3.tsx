@@ -8,6 +8,8 @@ import {
   NavButton,
 } from "../components/FormField";
 
+const API_BASE_URL = "http://localhost:8000";
+
 interface Props {
   data: FormData;
   update: (updates: Partial<FormData>) => void;
@@ -214,6 +216,8 @@ function wordCount(text: string) {
 
 export default function Page3({ data, update, onBack, requirements = {} }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const abstractWords = wordCount(data.abstract);
   const abstractLimit = 250;
   const abstractOverLimit = abstractWords > abstractLimit;
@@ -315,7 +319,57 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
     update({ keySections: next });
   };
 
+  const handleDownloadLatex = async () => {
+    if (!data.publisher) {
+      alert("Please select a publisher on the previous page.");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/generate-template`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          publisher: data.publisher,
+          fields: data,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const latex = result.latex;
+
+      if (!latex) {
+        throw new Error("No LaTeX content received from server.");
+      }
+
+      const blob = new Blob([latex], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "manuscript.tex";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("LaTeX generation failed:", error);
+      alert(`Failed to generate LaTeX: ${error instanceof Error ? error.message : "Unknown error"}. Please check the console for details.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
+    <form>
     <div className="grid grid-cols-[1fr_260px] gap-6 items-start">
       {/* Main form column */}
       <div className="flex flex-col gap-6">
@@ -706,19 +760,31 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
         <button className="h-9 bg-[#0f766e] hover:bg-[#0d5f58] text-white text-[13px] font-semibold rounded-lg transition-colors">
           Submit Manuscript
         </button>
-        <button className="h-9 border border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc] text-[13px] font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M7 1v8m0 0 3-3m-3 3-3-3M2 12h10"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Download LaTeX (.tex)
+        <button
+          type="button"
+          onClick={handleDownloadLatex}
+          disabled={isGenerating || !data.publisher}
+          className="h-9 border border-[#cbd5e1] text-[#334155] hover:bg-[#f8fafc] text-[13px] font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? (
+            "Generating LaTeX..."
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                <path
+                  d="M7 1v8m0 0 3-3m-3 3-3-3M2 12h10"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Download LaTeX (.tex)
+            </>
+          )}
         </button>
       </div>
     </div>
+    </form>
   );
 }
