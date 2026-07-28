@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type React from "react";
 import type { FormData } from "../App";
 import { Field, Select, MiniInput, Section, NavButton } from "../components/FormField";
@@ -10,6 +11,10 @@ interface Props {
   unresolvedFields?: string[];
 }
 
+// Each publisher maps to the one document class its official LaTeX
+// template actually uses - none of the five currently supported publishers
+// offer more than one recognized class, just different class options
+// (e.g. IEEE's [journal,onecolumn] vs [journal]).
 const DOCUMENT_CLASSES_BY_PUBLISHER: Record<string, { value: string; label: string }[]> = {
   IEEE: [{ value: "IEEEtran.cls", label: "IEEEtran.cls" }],
   ACM: [{ value: "acmart.cls", label: "acmart.cls" }],
@@ -22,6 +27,11 @@ const FALLBACK_DOCUMENT_CLASSES = [
   { value: "article.cls", label: "article.cls (generic)" },
 ];
 
+// Publishers whose official template offers a column-count choice at all.
+// Springer's sn-jnl class has no column class option - it's fixed
+// single-column and controlled by the journal, not the author.
+const PUBLISHERS_WITHOUT_COLUMN_CHOICE = ["Springer"];
+
 export default function Page2({
   data,
   update,
@@ -32,20 +42,27 @@ export default function Page2({
   const availableDocumentClasses =
     DOCUMENT_CLASSES_BY_PUBLISHER[data.publisher] ?? FALLBACK_DOCUMENT_CLASSES;
 
-  // Column layout options per publisher
-  const getColumnOptions = () => {
-    if (data.publisher === "IEEE") {
-      return [
-        { value: "double", label: "Double Column (IEEE Standard)" },
-        { value: "single", label: "Single Column" },
-      ];
+  // Highlights are an Elsevier-specific convention - clear any leftover
+  // value if the user switches away from Elsevier to a different publisher.
+  useEffect(() => {
+    if (data.publisher !== "Elsevier" && data.highlights !== "") {
+      update({ highlights: "" });
     }
-    // Other publishers only support double column by default
-    return [{ value: "double", label: "Double Column (Default)" }];
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.publisher]);
 
-  const columnOptions = getColumnOptions();
-
+  // Some publishers (Springer) don't offer a column-count choice at all -
+  // their template is fixed single-column. Lock the value automatically
+  // rather than asking the user to pick something that isn't really a choice.
+  useEffect(() => {
+    if (
+      PUBLISHERS_WITHOUT_COLUMN_CHOICE.includes(data.publisher) &&
+      data.columnLayout !== "single"
+    ) {
+      update({ columnLayout: "single" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.publisher]);
   const requiredFilled =
     data.columnLayout !== "" &&
     data.lineSpacing !== "" &&
@@ -61,7 +78,7 @@ export default function Page2({
     data.referencingStyle !== "" &&
     data.keywordSeparator !== "" &&
     data.documentClass !== "" &&
-    data.highlights !== "" &&
+    (data.publisher !== "Elsevier" || data.highlights !== "") &&
     data.orcidRequired !== "";
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -107,24 +124,29 @@ export default function Page2({
       <div className="bg-white border border-[#e2e8f0] rounded-2xl p-8 flex flex-col gap-8">
         <Section title="Page Layout & Spacing">
           <div className="grid grid-cols-2 gap-5">
-            <Field label="Column Layout">
-              <Select
-                value={data.columnLayout}
-                onChange={(e) =>
-                  update({
-                    columnLayout: e.target.value as FormData["columnLayout"],
-                  })
-                }
-              >
-                <option value="">Select layout…</option>
-                {columnOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
-              <UnresolvedNote field="columnLayout" />
-            </Field>
+            {PUBLISHERS_WITHOUT_COLUMN_CHOICE.includes(data.publisher) ? (
+              <Field label="Column Layout">
+                <p className="text-sm text-[#334155] py-2">
+                  Single column (fixed by {data.publisher || "this publisher"}'s template)
+                </p>
+              </Field>
+            ) : (
+              <Field label="Column Layout">
+                <Select
+                  value={data.columnLayout}
+                  onChange={(e) =>
+                    update({
+                      columnLayout: e.target.value as FormData["columnLayout"],
+                    })
+                  }
+                >
+                  <option value="">Select layout…</option>
+                  <option value="double">Double Column (IEEE Standard)</option>
+                  <option value="single">Single Column</option>
+                </Select>
+                <UnresolvedNote field="columnLayout" />
+              </Field>
+            )}
             <Field label="Line Spacing">
               <Select
                 value={data.lineSpacing}
@@ -294,21 +316,23 @@ export default function Page2({
               </Select>
               <UnresolvedNote field="documentClass" />
             </Field>
-            <Field label="Highlights Required">
-              <Select
-                value={data.highlights}
-                onChange={(e) =>
-                  update({
-                    highlights: e.target.value as FormData["highlights"],
-                  })
-                }
-              >
-                <option value="">Select…</option>
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </Select>
-              <UnresolvedNote field="highlights" />
-            </Field>
+            {data.publisher === "Elsevier" && (
+              <Field label="Highlights Required">
+                <Select
+                  value={data.highlights}
+                  onChange={(e) =>
+                    update({
+                      highlights: e.target.value as FormData["highlights"],
+                    })
+                  }
+                >
+                  <option value="">Select…</option>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </Select>
+                <UnresolvedNote field="highlights" />
+              </Field>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-5">

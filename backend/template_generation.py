@@ -13,18 +13,19 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 TEMPLATE_FILENAMES = {
-    "IEEE": ["IEEE.tex","IEEE_single.tex"],
-    "ACM": "ACM.tex",
-    "Elsevier": "Elsevier.tex",
-    "Springer": "Springer.tex",
-    "Wiley": "Wiley.tex",
+    "IEEE": "IEEE_l.tex",
+    "ACM": "ACM-template-blank.tex",
+    "Elsevier": "Elsevier-template-blank.tex",
+    "Springer": "Springer-template-blank.tex",
+    "Wiley": "Wiley_l.tex",
 }
 
 GENERATION_SYSTEM_PROMPT = (
     "You are an expert LaTeX developer. You will be given the official "
     "LaTeX template for an academic publisher, along with a set of "
     "formatting rules and manuscript content collected from the author. "
-    "Modify the template so it reflects the given formatting rules and "
+    "Modify the template while following the rules commented within strictly "
+    "so it reflects the given formatting rules and "
     "content. Keep the template's document class, required packages, and "
     "any publisher-mandated commands intact wherever they are not "
     "explicitly overridden by the provided fields. Replace placeholder "
@@ -42,26 +43,12 @@ class GenerateTemplateRequest(BaseModel):
 class GenerateTemplateResponse(BaseModel):
     latex: str
 
-def clean_latex_template(text: str) -> str:
-    lines = []
-    for line in text.splitlines():
-        # Remove comments, but keep lines that are only whitespace
-        stripped = line.split('%', 1)[0].rstrip()
-        if stripped or not line.strip():  # keep empty lines for structure
-            lines.append(stripped)
-    return '\n'.join(lines)
-
 
 def load_publisher_template(publisher: str,col:str) -> str:
     filename = TEMPLATE_FILENAMES.get(publisher)
     if not filename:
         raise ValueError(f"No template configured for publisher '{publisher}'.")
     
-    if publisher=="IEEE":
-        if col=='single':
-            filename=filename[1]
-        else:
-            filename=filename[0]
 
     path = TEMPLATES_DIR / filename
     if not path.exists():
@@ -71,7 +58,7 @@ def load_publisher_template(publisher: str,col:str) -> str:
             f"backend's templates/ folder."
         )
 
-    return clean_latex_template(path.read_text(encoding="utf-8", errors="ignore"))
+    return path.read_text(encoding="utf-8", errors="ignore")
 
 def _format_fields_for_prompt(fields: dict[str, Any]) -> str:
     """
@@ -120,14 +107,20 @@ def call_groq_generation(prompt: str) -> str:
         base_url="https://api.groq.com/openai/v1",
         api_key=GROQ_API_KEY,
     )
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {"role": "system", "content": GENERATION_SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.2,  # low but not zero - some natural-language content (abstract etc) still needs to flow
-    )
+
+    while True:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {"role": "system", "content": GENERATION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.1,  # low but not zero - some natural-language content (abstract etc) still needs to flow
+        )
+
+        if r"\end{document}" in response.choices[0].message.content:
+            break
+
     return response.choices[0].message.content
 
 
