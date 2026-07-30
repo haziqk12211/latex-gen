@@ -1,14 +1,16 @@
 %% Blank Springer Nature (sn-jnl) article skeleton, trimmed to fields this app collects.
 %%
 %% Pick ONE \documentclass line - this also determines citation style,
-%% so it should be chosen based on FormData.referencingStyle:
-%%   sn-basic          -> general/Chemistry style (name-date by default)
-%%   sn-vancouver-num   -> Vancouver, numbered refs
-%%   sn-vancouver-ay    -> Vancouver, author-year refs
-%%   sn-apa             -> APA style -> FormData.referencingStyle="APA"
-%%   sn-mathphys-num    -> Math & Physical Sciences, numbered refs
-%%   sn-nature          -> Nature Portfolio journals
-%% (sn-chicago, sn-aps also exist but have no FormData.referencingStyle match)
+%% so it should be chosen based on FormData.referencingStyle;
+%%   sn-basic          -> FormData.referencingStyle='Basic'
+%%   sn-vancouver-num   -> FormData.referencingStyle='VancouverNumbered'
+%%   sn-vancouver-ay    -> FormData.referencingStyle='VacouverAuthorYear'
+%%   sn-apa             -> FormData.referencingStyle='APA' 
+%%   sn-mathphys-num    -> FormData.referencingStyle= 'MathPhysNumbered'
+%%   sn-mathphys-ay     -> FormData.referencingStyle= 'MathPhysAuthorYear'
+%%   sn-nature          -> FormData.referencingStyle= 'Nature'
+%%   sn-chicago         -> FormData.referencingStyle= 'Chicago'
+%%   sn-aps             -> FormData.referencingStyle= 'APS'
 \documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 
 \usepackage{graphicx}%

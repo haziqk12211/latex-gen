@@ -28,12 +28,7 @@ export type FormData = {
   fontFamily: string;
   keywordSeparator: "comma" | "semicolon" | "";
   documentClass: string;
-  referencingStyle:
-    | "APA"
-    | "Harvard"
-    | "IEEE"
-    | "Vancouver"
-    | "";
+  referencingStyle: string;
   highlights: "yes" | "no" | "";
   orcidRequired: "yes" | "no" | "";
   // Page 3
@@ -53,7 +48,7 @@ export type FormData = {
   consentForPublication: string;
   authorContributions: string;
   creditStatement: string;
-  generativeAI:string;
+  generativeAI: string;
 };
 
 export type Author = {
@@ -100,7 +95,7 @@ const initialData: FormData = {
   consentForPublication: "",
   authorContributions: "",
   creditStatement: "",
-  generativeAI:"",
+  generativeAI: "",
 };
 
 const NAV_ITEMS = [

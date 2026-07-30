@@ -27,7 +27,7 @@ FORMATTING_FIELDS = [
     "fontFamily",
     "keywordSeparator",    # comma | semicolon
     "documentClass",
-    "referencingStyle",    # APA | Harvard | IEEE | Vancouver
+    "referencingStyle",   
     "highlights",          # yes | no
     "orcidRequired",       # yes | no
 ]
@@ -53,9 +53,9 @@ ALLOWED_VALUES: dict[str, list[str]] = {
     "columnLayout": ["single", "double"],
     "lineSpacing": ["single", "double"],
     "keywordSeparator": ["comma", "semicolon"],
-    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls","WileyNJDv5"],
+    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls","WileyNJDv5","sn-jnl.cls"],
     "fontFamily": ["Times New Roman", "Arial", "Computer Modern"],
-    "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver"],
+    "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver","Numbered","AuthorYear","VancouverNumbered","VancouverAuthorYear","Chicago","Basic","MathPhysNumbered","MathPhysAuthorYear","APS","Nature"],
     "highlights": ["yes", "no"],
     "orcidRequired": ["yes", "no"],
 }
@@ -102,10 +102,11 @@ def build_extraction_prompt(guideline_text: str) -> str:
         "- For columnLayout use only: 'single', 'double', or 'NOT_SPECIFIED'\n"
         "- For lineSpacing use only: 'single', 'double', or 'NOT_SPECIFIED'\n"
         "- For keywordSeparator use only: 'comma', 'semicolon', or 'NOT_SPECIFIED'\n"
-        "- For referencingStyle use only: 'APA', 'Harvard', 'IEEE', 'Vancouver', or 'NOT_SPECIFIED'\n"
+        "- For referencingStyle use only: 'APA', 'Harvard', 'IEEE', 'Vancouver','Numbered','AuthorYear','VancouverNumbered','VancouverAuthorYear','Chicago','Basic', "
+        "'MathPhysNumbered','MathPhysAuthorYear','APS','Nature' or 'NOT_SPECIFIED'\n"
         "- For fontFamily use only: 'Times New Roman', 'Arial', 'Computer Modern', or 'NOT_SPECIFIED' "
         "(pick whichever is closest if the text names a similar font)\n"
-        "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls', "
+        "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls','WileyNJDv5.cls',' sn-jnl.cls' "
         "or 'NOT_SPECIFIED'\n"
         "- For marginLeft, marginRight, marginTop, marginBottom: this application "
         "only accepts millimeters. If the guideline text states the margin in "

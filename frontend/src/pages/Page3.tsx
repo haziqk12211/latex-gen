@@ -448,6 +448,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                             </p>
                           )}
                         </Field>
+                        {data.orcidRequired === "yes" && (
                         <Field label="ORCID ID">
                           <Input
                             placeholder="0000-0000-0000-0000"
@@ -463,6 +464,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                             </p>
                           )}
                         </Field>
+                        )}
                       </div>
                       <Field label="Affiliation">
                         <AffiliationCombobox
@@ -722,6 +724,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                 {keywordCount} / 5
               </span>
             </div>
+             {data.publisher === "Elsevier" && (
             <div className="flex justify-between">
               <span className="text-[#64748b]">Highlights length</span>
               <span className="font-semibold text-[#0f172a]">
@@ -732,6 +735,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                   : "Not required"}
               </span>
             </div>
+             )}
           </div>
 
           <div className="mt-4 flex items-start gap-2 bg-[#f0fdfa] border border-[#99f6e4] rounded-lg p-3">

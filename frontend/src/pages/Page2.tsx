@@ -32,6 +32,49 @@ const FALLBACK_DOCUMENT_CLASSES = [
 // single-column and controlled by the journal, not the author.
 const PUBLISHERS_WITHOUT_COLUMN_CHOICE = ["Springer"];
 
+// Each publisher's actual supported referencing/citation styles, based on
+// what each publisher's real LaTeX class supports (not a generic list
+// applied to all five - none of them support the same set).
+const REFERENCING_STYLES_BY_PUBLISHER: Record<string, { value: string; label: string }[]> = {
+  IEEE: [{ value: "Numeric", label: "Numeric (IEEEtran default)" }],
+  ACM: [
+    { value: "Numbered", label: "Numbered (ACM-Reference-Format)" },
+    { value: "AuthorYear", label: "Author-Year" },
+  ],
+  Elsevier: [
+    { value: "Harvard", label: "Harvard / Author-Year (elsarticle-harv)" },
+    { value: "Numbered", label: "Numbered (elsarticle-num)" },
+  ],
+  Wiley: [
+    { value: "Harvard", label: "Harvard" },
+    { value: "AMA", label: "AMA" },
+    { value: "Vancouver", label: "Vancouver" },
+    { value: "Numbered", label: "Numbered" },
+  ],
+  Springer: [
+    { value: "APA", label: "APA" },
+    { value: "VancouverNumbered", label: "Vancouver (Numbered)" },
+    { value: "VancouverAuthorYear", label: "Vancouver (Author-Year)" },
+    { value: "Chicago", label: "Chicago" },
+    { value: "Basic", label: "Basic / Name-Date" },
+    { value: "MathPhysNumbered", label: "Math & Physical Sciences (Numbered)" },
+    { value: "MathPhysAuthorYear", label: "Math & Physical Sciences (Author-Year)" },
+    { value: "APS", label: "APS" },
+    { value: "Nature", label: "Nature-style" },
+  ],
+};
+
+const FALLBACK_REFERENCING_STYLES = [
+  { value: "APA", label: "APA" },
+  { value: "Harvard", label: "Harvard" },
+  { value: "Numbered", label: "Numbered" },
+  { value: "Vancouver", label: "Vancouver" },
+];
+
+// Publishers where the referencing style is genuinely fixed to one option -
+// lock it automatically rather than presenting a dropdown with one choice.
+const PUBLISHERS_WITH_FIXED_REFERENCING_STYLE = ["IEEE"];
+
 export default function Page2({
   data,
   update,
@@ -41,6 +84,9 @@ export default function Page2({
 }: Props) {
   const availableDocumentClasses =
     DOCUMENT_CLASSES_BY_PUBLISHER[data.publisher] ?? FALLBACK_DOCUMENT_CLASSES;
+
+  const availableReferencingStyles =
+    REFERENCING_STYLES_BY_PUBLISHER[data.publisher] ?? FALLBACK_REFERENCING_STYLES;
 
   // Highlights are an Elsevier-specific convention - clear any leftover
   // value if the user switches away from Elsevier to a different publisher.
@@ -60,6 +106,18 @@ export default function Page2({
       data.columnLayout !== "single"
     ) {
       update({ columnLayout: "single" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.publisher]);
+
+  // Some publishers (IEEE) only support one referencing style at all -
+  // lock it automatically rather than presenting a one-item dropdown.
+  useEffect(() => {
+    if (PUBLISHERS_WITH_FIXED_REFERENCING_STYLE.includes(data.publisher)) {
+      const onlyOption = REFERENCING_STYLES_BY_PUBLISHER[data.publisher][0].value;
+      if (data.referencingStyle !== onlyOption) {
+        update({ referencingStyle: onlyOption as FormData["referencingStyle"] });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.publisher]);
@@ -265,24 +323,33 @@ export default function Page2({
 
         <Section title="Referencing & Content">
           <div className="grid grid-cols-2 gap-5">
-            <Field label="Referencing Style">
-              <Select
-                value={data.referencingStyle}
-                onChange={(e) =>
-                  update({
-                    referencingStyle: e.target
-                      .value as FormData["referencingStyle"],
-                  })
-                }
-              >
-                <option value="">Select style…</option>
-                <option value="IEEE">IEEE</option>
-                <option value="APA">APA</option>
-                <option value="Harvard">Harvard</option>
-                <option value="Vancouver">Vancouver</option>
-              </Select>
-              <UnresolvedNote field="referencingStyle" />
-            </Field>
+            {PUBLISHERS_WITH_FIXED_REFERENCING_STYLE.includes(data.publisher) ? (
+              <Field label="Referencing Style">
+                <p className="text-sm text-[#334155] py-2">
+                  {availableReferencingStyles[0].label} (fixed by {data.publisher}'s template)
+                </p>
+              </Field>
+            ) : (
+              <Field label="Referencing Style">
+                <Select
+                  value={data.referencingStyle}
+                  onChange={(e) =>
+                    update({
+                      referencingStyle: e.target
+                        .value as FormData["referencingStyle"],
+                    })
+                  }
+                >
+                  <option value="">Select style…</option>
+                  {availableReferencingStyles.map((style) => (
+                    <option key={style.value} value={style.value}>
+                      {style.label}
+                    </option>
+                  ))}
+                </Select>
+                <UnresolvedNote field="referencingStyle" />
+              </Field>
+            )}
             <Field label="Keyword Separator">
               <Select
                 value={data.keywordSeparator}
