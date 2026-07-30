@@ -14,9 +14,9 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 TEMPLATE_FILENAMES = {
     "IEEE": "IEEE_l.tex",
-    "ACM": "ACM-template-blank.tex",
-    "Elsevier": "Elsevier-template-blank.tex",
-    "Springer": "Springer-template-blank.tex",
+    "ACM": "ACM_l.tex",
+    "Elsevier": "Elsevier_l.tex",
+    "Springer": "Springer_l.tex",
     "Wiley": "Wiley_l.tex",
 }
 
