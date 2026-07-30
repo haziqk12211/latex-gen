@@ -328,6 +328,33 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
     setIsGenerating(true);
 
     try {
+      // Standard name used for the generated .bib file
+      const BIB_FILENAME = "references.bib";
+
+      // If the user typed BibTeX into the textarea, create a .bib file,
+      // set it on the form's bibliography field, and trigger a download.
+      if (data.bibliographyText.trim()) {
+        const bibBlob = new Blob([data.bibliographyText], {
+          type: "application/x-bibtex",
+        });
+        const bibFile = new File([bibBlob], BIB_FILENAME, {
+          type: "application/x-bibtex",
+        });
+
+        // Store the generated file in the form state
+        update({ bibliography: bibFile });
+
+        // Trigger download of the .bib file
+        const bibUrl = URL.createObjectURL(bibBlob);
+        const bibLink = document.createElement("a");
+        bibLink.href = bibUrl;
+        bibLink.download = BIB_FILENAME;
+        document.body.appendChild(bibLink);
+        bibLink.click();
+        document.body.removeChild(bibLink);
+        URL.revokeObjectURL(bibUrl);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/generate-template`, {
         method: "POST",
         headers: {
@@ -335,7 +362,15 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
         },
         body: JSON.stringify({
           publisher: data.publisher,
-          fields: data,
+          fields: {
+            ...data,
+            // Ensure the backend sees the standard bibliography filename
+            // when text was provided
+            bibliography:
+              data.bibliographyText.trim()
+                ? { name: BIB_FILENAME }
+                : data.bibliography,
+          },
         }),
       });
 
@@ -783,7 +818,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                   strokeLinejoin="round"
                 />
               </svg>
-              Download LaTeX (.tex)
+              Download File(s)
             </>
           )}
         </button>

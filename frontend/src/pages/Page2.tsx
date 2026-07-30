@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type React from "react";
 import type { FormData } from "../App";
-import { Field, Select, MiniInput, Section, NavButton } from "../components/FormField";
+import { Field, Select, Section, NavButton } from "../components/FormField";
 
 interface Props {
   data: FormData;
@@ -224,34 +224,35 @@ export default function Page2({
 
           <Field label="Margins (mm)">
             <div className="grid grid-cols-4 gap-4 mt-1">
-              <MiniInput
-                label="T"
-                type="number"
-                min="0"
-                value={data.marginTop}
-                onChange={(e) => update({ marginTop: e.target.value })}
-              />
-              <MiniInput
-                label="B"
-                type="number"
-                min="0"
-                value={data.marginBottom}
-                onChange={(e) => update({ marginBottom: e.target.value })}
-              />
-              <MiniInput
-                label="L"
-                type="number"
-                min="0"
-                value={data.marginLeft}
-                onChange={(e) => update({ marginLeft: e.target.value })}
-              />
-              <MiniInput
-                label="R"
-                type="number"
-                min="0"
-                value={data.marginRight}
-                onChange={(e) => update({ marginRight: e.target.value })}
-              />
+              {(
+                [
+                  ["T", "marginTop"],
+                  ["B", "marginBottom"],
+                  ["L", "marginLeft"],
+                  ["R", "marginRight"],
+                ] as const
+              ).map(([label, key]) => (
+                <div key={key} className="flex flex-col gap-1">
+                  <span className="text-[11px] font-medium text-[#64748b]">
+                    {label}
+                  </span>
+                  <Select
+                    value={data[key]}
+                    onChange={(e) =>
+                      update({ [key]: e.target.value } as Partial<FormData>)
+                    }
+                  >
+                    <option value="">Select…</option>
+                    <option value="default">Default</option>
+                    <option value="15">15 mm</option>
+                    <option value="20">20 mm</option>
+                    <option value="25">25 mm</option>
+                    <option value="30">30 mm</option>
+                    <option value="40">40 mm</option>
+                    <option value="50.8">50.8 mm</option>
+                  </Select>
+                </div>
+              ))}
             </div>
             <UnresolvedGroupNote
               fields={["marginTop", "marginBottom", "marginLeft", "marginRight"]}
@@ -267,6 +268,7 @@ export default function Page2({
               onChange={(e) => update({ fontFamily: e.target.value })}
             >
               <option value="">Select font…</option>
+              <option value="default">Default (publisher recommended)</option>
               <option value="Times New Roman">Times New Roman</option>
               <option value="Arial">Arial</option>
               <option value="Computer Modern">Computer Modern</option>
@@ -276,38 +278,39 @@ export default function Page2({
 
           <Field label="Font Sizes (pt)">
             <div className="grid grid-cols-4 gap-4 mt-1">
-              <MiniInput
-                label="Title"
-                type="number"
-                min="1"
-                value={data.fontSizeTitle}
-                onChange={(e) => update({ fontSizeTitle: e.target.value })}
-              />
-              <MiniInput
-                label="Text"
-                type="number"
-                min="1"
-                value={data.fontSizeText}
-                onChange={(e) => update({ fontSizeText: e.target.value })}
-              />
-              <MiniInput
-                label="Fig Caption"
-                type="number"
-                min="1"
-                value={data.fontSizeFigureCaption}
-                onChange={(e) =>
-                  update({ fontSizeFigureCaption: e.target.value })
-                }
-              />
-              <MiniInput
-                label="Tbl Caption"
-                type="number"
-                min="1"
-                value={data.fontSizeTableCaption}
-                onChange={(e) =>
-                  update({ fontSizeTableCaption: e.target.value })
-                }
-              />
+              {(
+                [
+                  ["Title", "fontSizeTitle"],
+                  ["Text", "fontSizeText"],
+                  ["Fig Caption", "fontSizeFigureCaption"],
+                  ["Tbl Caption", "fontSizeTableCaption"],
+                ] as const
+              ).map(([label, key]) => (
+                <div key={key} className="flex flex-col gap-1">
+                  <span className="text-[11px] font-medium text-[#64748b]">
+                    {label}
+                  </span>
+                  <Select
+                    value={data[key]}
+                    onChange={(e) =>
+                      update({ [key]: e.target.value } as Partial<FormData>)
+                    }
+                  >
+                    <option value="">Select…</option>
+                    <option value="default">Default</option>
+                    <option value="8">8 pt</option>
+                    <option value="9">9 pt</option>
+                    <option value="10">10 pt</option>
+                    <option value="11">11 pt</option>
+                    <option value="12">12 pt</option>
+                    <option value="14">14 pt</option>
+                    <option value="16">16 pt</option>
+                    <option value="18">18 pt</option>
+                    <option value="20">20 pt</option>
+                    <option value="24">24 pt</option>
+                  </Select>
+                </div>
+              ))}
             </div>
             <UnresolvedGroupNote
               fields={[
