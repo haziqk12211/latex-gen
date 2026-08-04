@@ -36,9 +36,9 @@ const PUBLISHERS_WITHOUT_COLUMN_CHOICE = ["Springer"];
 // what each publisher's real LaTeX class supports (not a generic list
 // applied to all five - none of them support the same set).
 const REFERENCING_STYLES_BY_PUBLISHER: Record<string, { value: string; label: string }[]> = {
-  IEEE: [{ value: "Numeric", label: "Numeric (IEEEtran default)" }],
+  IEEE: [{ value: "Numeric", label: "Numeric" }],
   ACM: [
-    { value: "Numbered", label: "Numbered (ACM-Reference-Format)" },
+    { value: "Numbered", label: "Numbered" },
     { value: "AuthorYear", label: "Author-Year" },
   ],
   Elsevier: [

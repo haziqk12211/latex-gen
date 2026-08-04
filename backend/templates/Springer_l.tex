@@ -120,11 +120,10 @@ Column A & Column B & Column C & Column D \\
 \end{appendices}
 
 %% Bibliography style follows the documentclass option chosen above,
-%% which should match FormData.referencingStyle. If FormData.bibliographyText
-%% or an uploaded .bib file (FormData.bibliography) is present, keep
-%% \bibliography{...}; otherwise generate a placeholder reference
-%% matching the chosen style.
-\bibliography{sn-bibliography}
+%% which should match FormData.referencingStyle. If FormData.bibliographyname
+%% is non-empty, keep \bibliography{...} and replace "..." with FormData.bibliographyname.
+%% otherwise generate a manual bibliography block .
+\bibliography{...}
 
 \end{document}
 %% End of trimmed Springer Nature (sn-jnl) skeleton.

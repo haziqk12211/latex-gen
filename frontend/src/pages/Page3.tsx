@@ -269,7 +269,7 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
     data.conclusion.trim() !== "",
     keywordCount > 0,
     data.keySections.length > 0,
-    Boolean(data.bibliography) || data.bibliographyText.trim() !== "",
+    data.bibliographyname.trim()!== "" || data.bibliographyText.trim() !== "",
     data.dataAvailability.trim() !== "",
     data.fundingStatement.trim() !== "",
     data.conflictOfInterest.trim() !== "",
@@ -328,31 +328,15 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
     setIsGenerating(true);
 
     try {
-      // Standard name used for the generated .bib file
-      const BIB_FILENAME = "references.bib";
+      const hasPastedBib = data.bibliographyText.trim() !== "";
+      // Backend only needs bibliographyname (no extension). When the user
+      // pastes BibTeX text we always use the standard "references" name.
+      const bibNameForBackend = hasPastedBib
+        ? "references"
+        : (data.bibliographyname || "").replace(/\.bib$/i, "");
 
-      // If the user typed BibTeX into the textarea, create a .bib file,
-      // set it on the form's bibliography field, and trigger a download.
-      if (data.bibliographyText.trim()) {
-        const bibBlob = new Blob([data.bibliographyText], {
-          type: "application/x-bibtex",
-        });
-        const bibFile = new File([bibBlob], BIB_FILENAME, {
-          type: "application/x-bibtex",
-        });
-
-        // Store the generated file in the form state
-        update({ bibliography: bibFile });
-
-        // Trigger download of the .bib file
-        const bibUrl = URL.createObjectURL(bibBlob);
-        const bibLink = document.createElement("a");
-        bibLink.href = bibUrl;
-        bibLink.download = BIB_FILENAME;
-        document.body.appendChild(bibLink);
-        bibLink.click();
-        document.body.removeChild(bibLink);
-        URL.revokeObjectURL(bibUrl);
+      if (hasPastedBib) {
+        update({ bibliographyname: bibNameForBackend });
       }
 
       const response = await fetch(`${API_BASE_URL}/api/generate-template`, {
@@ -364,12 +348,9 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
           publisher: data.publisher,
           fields: {
             ...data,
-            // Ensure the backend sees the standard bibliography filename
-            // when text was provided
-            bibliography:
-              data.bibliographyText.trim()
-                ? { name: BIB_FILENAME }
-                : data.bibliography,
+            // Backend only needs bibliographyname filled — do not send a
+            // File object or any extra bibliography payload.
+            bibliographyname: bibNameForBackend,
           },
         }),
       });
@@ -386,15 +367,32 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
         throw new Error("No LaTeX content received from server.");
       }
 
-      const blob = new Blob([latex], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "manuscript.tex";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Download the generated LaTeX
+      const latexBlob = new Blob([latex], { type: "text/plain" });
+      const latexUrl = URL.createObjectURL(latexBlob);
+      const latexLink = document.createElement("a");
+      latexLink.href = latexUrl;
+      latexLink.download = "manuscript.tex";
+      document.body.appendChild(latexLink);
+      latexLink.click();
+      document.body.removeChild(latexLink);
+      URL.revokeObjectURL(latexUrl);
+
+      // If the user pasted BibTeX text, also download the .bib file
+      // alongside the LaTeX (not before).
+      if (hasPastedBib) {
+        const bibBlob = new Blob([data.bibliographyText], {
+          type: "application/x-bibtex",
+        });
+        const bibUrl = URL.createObjectURL(bibBlob);
+        const bibLink = document.createElement("a");
+        bibLink.href = bibUrl;
+        bibLink.download = "references.bib";
+        document.body.appendChild(bibLink);
+        bibLink.click();
+        document.body.removeChild(bibLink);
+        URL.revokeObjectURL(bibUrl);
+      }
     } catch (error) {
       console.error("LaTeX generation failed:", error);
       alert(`Failed to generate LaTeX: ${error instanceof Error ? error.message : "Unknown error"}. Please check the console for details.`);
@@ -617,8 +615,8 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                   Upload Bibliography (.bib)
                 </span>
                 <span className="text-[12px] text-[#94a3b8]">
-                  {data.bibliography
-                    ? data.bibliography.name
+                  {data.bibliographyname
+                    ? `${data.bibliographyname}.bib`
                     : "BibTeX files only, max 5MB"}
                 </span>
               </button>
@@ -627,9 +625,22 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                 type="file"
                 accept=".bib"
                 className="hidden"
-                onChange={(e) =>
-                  update({ bibliography: e.target.files?.[0] ?? null })
-                }
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  if (file) {
+                    // Only store the base name (without .bib) — backend
+                    // needs bibliographyname, nothing else.
+                    const nameWithoutExt = file.name.replace(/\.bib$/i, "");
+                    update({
+                      bibliographyname: nameWithoutExt,
+                      bibliographyText: "",
+                    });
+                  } else {
+                    update({
+                      bibliographyname: "",
+                    });
+                  }
+                }}
               />
 
               <div className="flex items-center gap-3 text-[12px] text-[#94a3b8]">
@@ -643,7 +654,16 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                 placeholder="@article{key, title={...}, author={...}, ...}"
                 className="font-mono text-[13px]"
                 value={data.bibliographyText}
-                onChange={(e) => update({ bibliographyText: e.target.value })}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  // Pasting text takes precedence over a previously uploaded file
+                  update({
+                    bibliographyText: text,
+                    ...(text.trim()
+                      ? { bibliography: null, bibliographyname: "" }
+                      : {}),
+                  });
+                }}
               />
             </div>
           </div>

@@ -2,8 +2,6 @@
 %% if FormData.columnLayout==single
 \documentclass[journal]{IEEEtran}
 
-%% FormData fields that are close to IEEE standard options, use standards instead of specific FormData
-
 %% Keep amsmath/cite - commonly needed regardless of content.
 \usepackage{amsmath}
 \usepackage{cite}
@@ -57,7 +55,7 @@
 \section{Conclusion}
 
 %% Declarations/statements - only include a section here if the
-%% corresponding FormData field is non-empty, , uses \section* :
+%% corresponding FormData field is non-empty , uses \section* :
 %%   FormData.fundingStatement        -> "Funding" statement
 %%   FormData.conflictOfInterest      -> "Conflict of Interest" statement
 %%   FormData.dataAvailability        -> "Data Availability" statement
@@ -69,15 +67,13 @@
 %% Acknowledgment uses \section*
 \section*{Acknowledgment}
 
-%% Bibliography style -> FormData.referencingStyle.
-%% If FormData.bibliographyText or an uploaded .bib file is present,
-%% use \bibliographystyle{IEEEtran} + \bibliography{} instead of a
-%% manual thebibliography block.
-%% Generate a placeholder reference according to style with content in it.
-\begin{thebibliography}{1}
+%% Bibliography style -> FormData.referencingStyle 
+%% If FormData.bibliographyname is non-empty,
+%% keep \bibliographystyle{IEEEtran} + \bibliography{...} and 
+%% replace "..." with FormData.bibliographyname
+%% If neither is given, then generate a manual bibliography block  
 
-\bibitem{}
-
-\end{thebibliography}
+\bibliographystyle{IEEEtran} 
+\bibliography{...}
 
 \end{document}

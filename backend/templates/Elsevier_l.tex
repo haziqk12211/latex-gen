@@ -125,16 +125,12 @@
 \subsection{}
 \label{app:1.1}
 
-%% Bibliography style -> FormData.referencingStyle (elsarticle-harv for
-%% author-year, elsarticle-num for numbered). If FormData.bibliographyText
-%% or an uploaded .bib file (FormData.bibliography) is present, keep
-%% \bibliographystyle{}+\bibliography{}; otherwise use a manual
-%% thebibliography block with a placeholder entry matching the chosen style.
-\begin{thebibliography}{00}
-
-\bibitem{}
-
-\end{thebibliography}
+%% Bibliography style -> FormData.referencingStyle 
+%% replace "+++" in the following lines with "elsarticle-harv" if referencing style is Harvard,
+%% or with "elsarticle-num" for numbered.
+%% If FormData.bibliographyname is non-empty, replace "..." with FormData.bibliographyname.
+\bibliographystyle{+++}
+\bibliography{...}
 
 \end{document}
 %% End of trimmed elsarticle skeleton.

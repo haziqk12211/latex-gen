@@ -22,9 +22,7 @@
 \acmISBN{}
 
 %% ACM's citation style is either numbered (default) or author-year.
-%% FormData.referencingStyle doesn't map cleanly onto this - treat
-%% Harvard/APA as author-year, IEEE/Vancouver as numbered (default,
-%% no line needed). Uncomment only for the author-year case:
+%% if referencing style is author year, uncomment the following line:
 %%\citestyle{acmauthoryear}
 
 \begin{document}
@@ -122,10 +120,11 @@
 %% (fold FormData.conflictOfInterest in here too, if provided).
 \section*{Ethics and Privacy Statement}
 
-%% Bibliography style -> FormData.referencingStyle (see citestyle note
-%% above). If FormData.bibliographyText or an uploaded .bib file
-%% (FormData.bibliography) is present, keep \bibliography{...};
-%% otherwise generate a placeholder reference matching the chosen style.
+%% Bibliography style -> FormData.referencingStyle 
+%% If FormData.bibliographyname is non-empty,
+%% keep \bibliographystyle{}+ \bibliography{...} and 
+%% replace "..." with FormData.bibliographyname
+%% If neither is given, then generate a manual bibliography block  
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{}
 

@@ -39,7 +39,7 @@ export type FormData = {
   abstract: string;
   conclusion: string;
   keySections: string[];
-  bibliography: File | null;
+  bibliographyname: string;
   bibliographyText: string;
   dataAvailability: string;
   fundingStatement: string;
@@ -93,7 +93,7 @@ const initialData: FormData = {
   "Results",
   "Discussion",
 ],
-  bibliography: null,
+  bibliographyname: "",
   bibliographyText: "",
   dataAvailability: "",
   fundingStatement: "",

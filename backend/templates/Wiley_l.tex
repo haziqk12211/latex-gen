@@ -93,11 +93,10 @@ Column A & Column B & Column C & Column D \\
 \bmsection*{Acknowledgments}
 
 %% Bibliography style follows the documentclass option (HARVARD/AMA/etc.),
-%% which should match FormData.referencingStyle. If FormData.bibliographyText
-%% or an uploaded .bib file (FormData.bibliography) is present, keep
-%% \bibliography{...}; otherwise generate a placeholder reference matching
-%% the chosen style.
-\bibliography{wileyNJD-AMA}
+%% which should match FormData.referencingStyle. If FormData.bibliographyname
+%% is non-empty, keep \bibliography{...} and replace "..." with FormData.bibliographyname;
+%% otherwise generate a manual bibliography block
+\bibliography{...}
 
 \end{document}
 %% End of trimmed WileyNJD skeleton.
