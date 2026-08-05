@@ -42,15 +42,21 @@ const REFERENCING_STYLES_BY_PUBLISHER: Record<string, { value: string; label: st
     { value: "AuthorYear", label: "Author-Year" },
   ],
   Elsevier: [
-    { value: "Harvard", label: "Harvard / Author-Year (elsarticle-harv)" },
-    { value: "Numbered", label: "Numbered (elsarticle-num)" },
-  ],
-  Wiley: [
-    { value: "Harvard", label: "Harvard" },
-    { value: "AMA", label: "AMA" },
-    { value: "Vancouver", label: "Vancouver" },
+    { value: "Harvard", label: "Harvard / Author-Year " },
     { value: "Numbered", label: "Numbered" },
   ],
+  Wiley: [
+  { value: "AMA", label: "AMA (Numbered)" },
+  { value: "VANCOUVER", label: "Vancouver (Numbered)" },
+  { value: "MPS", label: "Math & Physical Sciences (Numbered)" },
+  { value: "AMS", label: "AMS (Numbered)" },
+  { value: "APS", label: "APS (Numbered)" },
+  { value: "WCMS", label: "Chemistry / Materials Sciences (Numbered)" },
+  { value: "HARVARD", label: "Harvard (Author-Year)" },
+  { value: "APA", label: "APA (Author-Year)" },
+  { value: "CHICAGO", label: "Chicago (Author-Year)" },
+  { value: "MLA", label: "MLA (Author-Year)" },
+],
   Springer: [
     { value: "APA", label: "APA" },
     { value: "VancouverNumbered", label: "Vancouver (Numbered)" },

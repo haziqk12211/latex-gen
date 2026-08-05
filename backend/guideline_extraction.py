@@ -55,7 +55,7 @@ ALLOWED_VALUES: dict[str, list[str]] = {
     "keywordSeparator": ["comma", "semicolon"],
     "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls","WileyNJDv5","sn-jnl.cls"],
     "fontFamily": ["Times New Roman", "Arial", "Computer Modern"],
-    "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver","Numbered","AuthorYear","VancouverNumbered","VancouverAuthorYear","Chicago","Basic","MathPhysNumbered","MathPhysAuthorYear","APS","Nature"],
+    "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver","Numbered","AuthorYear","VancouverNumbered","VancouverAuthorYear","Chicago","Basic","MathPhysNumbered","MathPhysAuthorYear","APS","Nature","AMS","MPS","AMA","WCMS","MLA"],
     "highlights": ["yes", "no"],
     "orcidRequired": ["yes", "no"],
 }
@@ -103,7 +103,7 @@ def build_extraction_prompt(guideline_text: str) -> str:
         "- For lineSpacing use only: 'single', 'double', or 'NOT_SPECIFIED'\n"
         "- For keywordSeparator use only: 'comma', 'semicolon', or 'NOT_SPECIFIED'\n"
         "- For referencingStyle use only: 'APA', 'Harvard', 'IEEE', 'Vancouver','Numbered','AuthorYear','VancouverNumbered','VancouverAuthorYear','Chicago','Basic', "
-        "'MathPhysNumbered','MathPhysAuthorYear','APS','Nature' or 'NOT_SPECIFIED'\n"
+        "'MathPhysNumbered','MathPhysAuthorYear','APS','Nature','AMS','MPS','AMA','WCMS', 'MLA' or 'NOT_SPECIFIED'\n"
         "- For fontFamily use only: 'Times New Roman', 'Arial', 'Computer Modern', or 'NOT_SPECIFIED' "
         "(pick whichever is closest if the text names a similar font)\n"
         "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls','WileyNJDv5.cls',' sn-jnl.cls' "
