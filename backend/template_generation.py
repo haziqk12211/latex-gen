@@ -157,7 +157,6 @@ def generate_template_route(payload: GenerateTemplateRequest):
         raise HTTPException(status_code=400, detail="Publisher is required.")
 
     try:
-        print(payload.fields)
         latex_code = generate_template(payload.publisher, payload.fields)
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=400, detail=str(exc))

@@ -27,9 +27,15 @@ FORMATTING_FIELDS = [
     "fontFamily",
     "keywordSeparator",    # comma | semicolon
     "documentClass",
-    "referencingStyle",   
+    "referencingStyle",
     "highlights",          # yes | no
     "orcidRequired",       # yes | no
+    "titleLength",
+    "abstractLength",
+    "pageCount",
+    "keywordCount",
+    "highlightCount",
+    "highlightlength",
 ]
 
 REQUIREMENT_FLAGS = [
@@ -53,9 +59,14 @@ ALLOWED_VALUES: dict[str, list[str]] = {
     "columnLayout": ["single", "double"],
     "lineSpacing": ["single", "double"],
     "keywordSeparator": ["comma", "semicolon"],
-    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls","WileyNJDv5","sn-jnl.cls"],
-    "fontFamily": ["Times New Roman", "Arial", "Computer Modern"],
-    "referencingStyle": ["APA", "Harvard", "IEEE", "Vancouver","Numbered","AuthorYear","VancouverNumbered","VancouverAuthorYear","Chicago","Basic","MathPhysNumbered","MathPhysAuthorYear","APS","Nature","AMS","MPS","AMA","WCMS","MLA"],
+    "documentClass": ["IEEEtran.cls", "article.cls", "acmart.cls", "elsarticle.cls", "WileyNJDv5.cls", "sn-jnl.cls"],
+    "fontFamily": ["Times New Roman", "Arial", "Computer Modern", "default"],
+    "referencingStyle": [
+        "APA", "Harvard", "IEEE", "Vancouver", "Numbered", "AuthorYear",
+        "VancouverNumbered", "VancouverAuthorYear", "Chicago", "Basic",
+        "MathPhysNumbered", "MathPhysAuthorYear", "APS", "Nature",
+        "AMS", "MPS", "AMA", "WCMS", "MLA"
+    ],
     "highlights": ["yes", "no"],
     "orcidRequired": ["yes", "no"],
 }
@@ -78,7 +89,16 @@ FONT_SIZE_FIELDS = [
     "fontSizeTableCaption",
 ]
 
-NUMERIC_FIELDS = MARGIN_FIELDS + FONT_SIZE_FIELDS
+CHECK_FIELDS = [
+    "titleLength",
+    "abstractLength",
+    "pageCount",
+    "keywordCount",
+    "highlightCount",
+    "highlightlength",
+]
+
+NUMERIC_FIELDS = MARGIN_FIELDS + FONT_SIZE_FIELDS + CHECK_FIELDS
 
 INCH_TO_MM = 25.4
 
@@ -106,7 +126,7 @@ def build_extraction_prompt(guideline_text: str) -> str:
         "'MathPhysNumbered','MathPhysAuthorYear','APS','Nature','AMS','MPS','AMA','WCMS', 'MLA' or 'NOT_SPECIFIED'\n"
         "- For fontFamily use only: 'Times New Roman', 'Arial', 'Computer Modern', or 'NOT_SPECIFIED' "
         "(pick whichever is closest if the text names a similar font)\n"
-        "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls','WileyNJDv5.cls',' sn-jnl.cls' "
+        "- For documentClass use only: 'IEEEtran.cls', 'article.cls', 'acmart.cls', 'elsarticle.cls','WileyNJDv5.cls','sn-jnl.cls' "
         "or 'NOT_SPECIFIED'\n"
         "- For marginLeft, marginRight, marginTop, marginBottom: this application "
         "only accepts millimeters. If the guideline text states the margin in "
@@ -117,6 +137,11 @@ def build_extraction_prompt(guideline_text: str) -> str:
         "- For fontSizeTitle, fontSizeText, fontSizeFigureCaption, "
         "fontSizeTableCaption: respond with the plain number only, "
         "with no unit (e.g. '10', not '10pt')\n"
+        "- For titleLength, abstractLength, pageCount, keywordCount, "
+        "highlightCount, highlightlength: respond with a single plain number "
+        "(no unit). If the guideline gives a range (e.g. '150-250 words', "
+        "'200–300', 'between 100 and 150'), report the LARGER / upper-bound "
+        "number only. If it says 'up to N' or 'maximum N', report N.\n"
         "- If a field is not mentioned or cannot be determined, write: fieldName: NOT_SPECIFIED\n"
         "- Do not guess or invent values.\n"
         "- For list fields (keywords, keySections), separate values with commas.\n"
@@ -161,6 +186,32 @@ def _normalize_numeric_value(raw_value: str) -> str | None:
     """Strips units like 'pt' and validates it's actually a number."""
     match = re.search(r"[\d.]+", raw_value)
     return match.group() if match else None
+
+
+def _normalize_check_value(raw_value: str) -> str | None:
+    """
+    Normalizes length/count fields that may appear as ranges.
+    Extracts every number in the string and returns the largest one as a
+    clean integer/decimal string. Handles forms like:
+      - "150-250 words"
+      - "200–300"          (en-dash)
+      - "between 100 and 150"
+      - "up to 300"
+      - "maximum of 12"
+      - "at least 5 and at most 8"
+    Falls back to None if no number is found.
+    """
+    numbers = re.findall(r"[\d.]+", raw_value)
+    if not numbers:
+        return None
+
+    values = [float(n) for n in numbers]
+    largest = max(values)
+
+    # Prefer a clean integer string when the value is whole
+    if largest == int(largest):
+        return str(int(largest))
+    return str(largest)
 
 
 def _normalize_margin_value(raw_value: str) -> str | None:
@@ -223,6 +274,8 @@ def parse_extraction_response(raw_text: str) -> ExtractionResult:
             cleaned = _normalize_margin_value(raw_value)
         elif field in FONT_SIZE_FIELDS:
             cleaned = _normalize_numeric_value(raw_value)
+        elif field in CHECK_FIELDS:
+            cleaned = _normalize_check_value(raw_value)
         elif field in ALLOWED_VALUES:
             cleaned = _normalize_constrained_value(field, raw_value)
         else:
@@ -307,7 +360,9 @@ if __name__ == "__main__":
     sample = (
         "Manuscripts must use a double-column, single-spaced format using a "
         "10-point font size, with a margin of at least 1 inch on all sides. "
-        "All authors must supply an ORCID iD before final submission."
+        "The title should be 10-15 words. Abstract length 150-250 words. "
+        "Maximum 12 pages. Keywords: 3-6. Highlights: up to 5 bullet points "
+        "of 85 characters each. All authors must supply an ORCID iD before final submission."
     )
     result = extract_fields(sample)
     print("Formatting fields:", result.formatting)

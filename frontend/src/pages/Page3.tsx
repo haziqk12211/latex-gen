@@ -214,15 +214,100 @@ function wordCount(text: string) {
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
+/** Parse a guideline-extracted numeric string; return null when absent/invalid. */
+function parseLimit(raw: string | undefined | null): number | null {
+  if (raw == null || String(raw).trim() === "") return null;
+  const n = parseFloat(String(raw));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export default function Page3({ data, update, onBack, requirements = {} }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Limits extracted from author guidelines. null = not found → display a
+  // publisher-aware soft default but do NOT enforce (user may exceed without
+  // error styling). When a value *was* extracted, the check is hard-enforced.
+  const titleLimit = parseLimit((data as Record<string, unknown>).titleLength as string);
+  const abstractLimitExtracted = parseLimit(
+    (data as Record<string, unknown>).abstractLength as string
+  );
+  const keywordLimitExtracted = parseLimit(
+    (data as Record<string, unknown>).keywordCount as string
+  );
+  const pageLimit = parseLimit((data as Record<string, unknown>).pageCount as string);
+  const highlightCountExtracted = parseLimit(
+    (data as Record<string, unknown>).highlightCount as string
+  );
+  const highlightLengthExtracted = parseLimit(
+    (data as Record<string, unknown>).highlightlength as string
+  );
+
+  // Publisher-aware soft defaults (display / reference only — never hard-enforced
+  // unless the same value was extracted from the submitted guidelines).
+  // Sources: typical journal guidance across IEEE, ACM, Elsevier, Springer, Wiley.
+  //
+  // Abstract: 150–250 is safe across the five; ACM short journals trend lower.
+  // Keywords: 4–6 is a sensible universal band; IEEE & ACM have no real numeric
+  //   convention, so they get no soft upper bound (just the raw count).
+  // Highlights (Elsevier only): 3–5 bullets, 85 characters max is firm enough
+  //   to treat as the soft default (and as a hard rule when guidelines are silent).
+  // Page limit: deliberately no numeric soft default — varies too much by journal.
+  const publisher = data.publisher || "";
+
+  const ABSTRACT_SOFT_DEFAULT: Record<string, number> = {
+    IEEE: 250,
+    ACM: 200, // CSUR-style short journals trend lower
+    Elsevier: 250,
+    Springer: 250,
+    Wiley: 250,
+  };
+  const ABSTRACT_DISPLAY_DEFAULT = ABSTRACT_SOFT_DEFAULT[publisher] ?? 250;
+
+  // null = no soft upper bound (show count only)
+  const KEYWORD_SOFT_DEFAULT: Record<string, number | null> = {
+    IEEE: null, // no real numeric convention
+    ACM: null, // no real numeric convention
+    Elsevier: 6,
+    Springer: 6,
+    Wiley: 6,
+  };
+  const KEYWORD_DISPLAY_DEFAULT = KEYWORD_SOFT_DEFAULT[publisher] ?? 6;
+
+  // Elsevier highlights — firm, well-documented defaults
+  const HIGHLIGHT_COUNT_SOFT_DEFAULT = 5; // 3–5 bullets typical
+  const HIGHLIGHT_LENGTH_SOFT_DEFAULT = 85; // characters per bullet
+
   const abstractWords = wordCount(data.abstract);
-  const abstractLimit = 250;
-  const abstractOverLimit = abstractWords > abstractLimit;
   const titleWords = wordCount(data.title);
   const keywordCount = data.keywords.filter((k) => k.trim() !== "").length;
+
+  // Hard enforcement only when the limit came from guidelines.
+  const abstractLimit = abstractLimitExtracted; // null → no hard limit
+  const keywordLimit = keywordLimitExtracted;
+  const abstractOverLimit =
+    abstractLimit != null && abstractWords > abstractLimit;
+  const titleOverLimit = titleLimit != null && titleWords > titleLimit;
+  const keywordOverLimit =
+    keywordLimit != null && keywordCount > keywordLimit;
+
+  // Elsevier highlights: prefer extracted; fall back to the firm soft defaults
+  // so the UI always has a concrete number for display.
+  // NOTE: Highlights content is not collected on this page, so limits cannot
+  // be enforced against real input — they remain display-only.
+  const highlightCountLimit =
+    highlightCountExtracted ??
+    (publisher === "Elsevier" ? HIGHLIGHT_COUNT_SOFT_DEFAULT : null);
+  const highlightLengthLimit =
+    highlightLengthExtracted ??
+    (publisher === "Elsevier" ? HIGHLIGHT_LENGTH_SOFT_DEFAULT : null);
+  // Limit enforcement commented out — no highlights text input exists yet.
+  // const highlightCountEnforced = highlightCountExtracted != null;
+  // const highlightLengthEnforced = highlightLengthExtracted != null;
+
+  // Display numbers for the sidebar (extracted value, else publisher soft default).
+  const abstractDisplayLimit = abstractLimit ?? ABSTRACT_DISPLAY_DEFAULT;
+  const keywordDisplayLimit = keywordLimit ?? KEYWORD_DISPLAY_DEFAULT;
 
   // Which declaration fields the user has opted to include. Priority:
   // 1) if the guidelines explicitly said this is required, pre-check it
@@ -255,33 +340,52 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
     }
   };
 
-  const completionChecks = [
-    data.title.trim() !== "",
-    data.authors.length > 0 &&
-      data.authors.every(
-        (a) =>
-          a.firstName &&
-          a.lastName &&
-          EMAIL_REGEX.test(a.email) &&
-          (a.orcidId === "" || ORCID_REGEX.test(a.orcidId))
-      ),
-    data.abstract.trim() !== "" && !abstractOverLimit,
-    data.conclusion.trim() !== "",
-    keywordCount > 0,
-    data.keySections.length > 0,
-    data.bibliographyname.trim()!== "" || data.bibliographyText.trim() !== "",
-    data.dataAvailability.trim() !== "",
-    data.fundingStatement.trim() !== "",
-    data.conflictOfInterest.trim() !== "",
-    data.ethicsApproval.trim() !== "",
-    data.consentForPublication.trim() !== "",
-    data.authorContributions.trim() !== "",
-    data.generativeAI.trim() !== "",
-    data.publisher !== "Elsevier" || data.creditStatement.trim() !== "",
+  // Live-check pass/fail items used for the colour bar (only guideline-backed
+  // limits participate; soft defaults never fail the bar).
+  const liveChecks: { label: string; pass: boolean; applicable: boolean }[] = [
+    {
+      label: "Title length",
+      applicable: titleLimit != null,
+      pass: !titleOverLimit,
+    },
+    {
+      label: "Abstract length",
+      applicable: abstractLimit != null,
+      pass: !abstractOverLimit,
+    },
+    {
+      label: "Keyword count",
+      applicable: keywordLimit != null,
+      pass: !keywordOverLimit,
+    },
+    {
+      label: "Page count",
+      applicable: pageLimit != null,
+      // No live page estimator — mark pass when a limit exists so the bar
+      // stays informative rather than permanently red.
+      pass: true,
+    },
   ];
-  const completionPercent = Math.round(
-    (completionChecks.filter(Boolean).length / completionChecks.length) * 100
-  );
+
+  // Highlights limit checking commented out — content is not collected on
+  // this page, so there is nothing to enforce against.
+  // if (publisher === "Elsevier") {
+  //   liveChecks.push({
+  //     label: "Highlights",
+  //     applicable:
+  //       data.highlights === "yes" ||
+  //       highlightCountExtracted != null ||
+  //       highlightLengthExtracted != null,
+  //     pass: true,
+  //   });
+  // }
+
+  const applicableChecks = liveChecks.filter((c) => c.applicable);
+  const passedCount = applicableChecks.filter((c) => c.pass).length;
+  const totalApplicable = applicableChecks.length;
+  const allPassing = totalApplicable === 0 || passedCount === totalApplicable;
+  const barPercent =
+    totalApplicable === 0 ? 100 : Math.round((passedCount / totalApplicable) * 100);
 
   const [keywordsText, setKeywordsText] = useState(
     data.keywords.filter(Boolean).join(", ")
@@ -417,8 +521,31 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
               <Input
                 placeholder="Enter the full title of your research paper"
                 value={data.title}
+                error={titleOverLimit}
                 onChange={(e) => update({ title: e.target.value })}
               />
+              {titleLimit != null && (
+                <div className="flex justify-between text-[12px] mt-1">
+                  <span
+                    className={
+                      titleOverLimit
+                        ? "text-[#dc2626] font-semibold"
+                        : "text-transparent select-none"
+                    }
+                  >
+                    Word limit exceeded (from guidelines)
+                  </span>
+                  <span
+                    className={
+                      titleOverLimit
+                        ? "text-[#dc2626] font-semibold"
+                        : "text-[#94a3b8]"
+                    }
+                  >
+                    {titleWords} / {titleLimit} words
+                  </span>
+                </div>
+              )}
             </Field>
 
             <Field label="Number of Authors">
@@ -527,8 +654,31 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
               <Input
                 placeholder="e.g. Machine Learning, NLP, Deep Learning"
                 value={keywordsText}
+                error={keywordOverLimit}
                 onChange={(e) => handleKeywordsChange(e.target.value)}
               />
+              {keywordLimit != null && (
+                <div className="flex justify-between text-[12px] mt-1">
+                  <span
+                    className={
+                      keywordOverLimit
+                        ? "text-[#dc2626] font-semibold"
+                        : "text-transparent select-none"
+                    }
+                  >
+                    Keyword limit exceeded (from guidelines)
+                  </span>
+                  <span
+                    className={
+                      keywordOverLimit
+                        ? "text-[#dc2626] font-semibold"
+                        : "text-[#94a3b8]"
+                    }
+                  >
+                    {keywordCount} / {keywordLimit}
+                  </span>
+                </div>
+              )}
             </Field>
           </div>
         </div>
@@ -556,7 +706,9 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                       : "text-transparent select-none"
                   }
                 >
-                  Character limit exceeded
+                  {abstractLimit != null
+                    ? "Word limit exceeded (from guidelines)"
+                    : "Limit exceeded"}
                 </span>
                 <span
                   className={
@@ -565,7 +717,10 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                       : "text-[#94a3b8]"
                   }
                 >
-                  {abstractWords} / {abstractLimit} words
+                  {abstractWords}
+                  {abstractLimit != null
+                    ? ` / ${abstractLimit} words`
+                    : ` words (soft guide: ${ABSTRACT_DISPLAY_DEFAULT})`}
                 </span>
               </div>
             </Field>
@@ -753,12 +908,20 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
           </div>
 
           <div className="flex flex-col gap-3 text-[13px]">
-            <div className="flex justify-between">
+            {/* Title length */}
+            <div className="flex justify-between items-center">
               <span className="text-[#64748b]">Title length</span>
-              <span className="font-semibold text-[#0f172a]">
+              <span
+                className={`font-semibold ${
+                  titleOverLimit ? "text-[#dc2626]" : "text-[#0f172a]"
+                }`}
+              >
                 {titleWords} words
+                {titleLimit != null ? ` / ${titleLimit}` : ""}
               </span>
             </div>
+
+            {/* Abstract length */}
             <div className="flex justify-between items-center pb-3 border-b border-[#e2e8f0]">
               <span className="text-[#64748b]">Abstract length</span>
               <span
@@ -766,53 +929,134 @@ export default function Page3({ data, update, onBack, requirements = {} }: Props
                   abstractOverLimit ? "text-[#dc2626]" : "text-[#0f172a]"
                 }`}
               >
-                {abstractWords} / {abstractLimit}
+                {abstractWords} / {abstractDisplayLimit}
+                {abstractLimit == null && (
+                  <span className="text-[11px] font-normal text-[#94a3b8]">
+                    {" "}
+                    (soft)
+                  </span>
+                )}
               </span>
             </div>
-            <div className="flex justify-between">
+
+            {/* Page count — never invent a soft number; varies too much by journal */}
+            <div className="flex justify-between items-center">
               <span className="text-[#64748b]">Page count</span>
-              <span className="font-semibold text-[#0f172a]">Est. 1 pg</span>
+              <span className="font-semibold text-[#0f172a]">
+                {pageLimit != null
+                  ? `Max ${pageLimit} pg`
+                  : "Check target journal"}
+              </span>
             </div>
-            <div className="flex justify-between">
+
+            {/* Keyword count — IEEE/ACM have no soft upper bound */}
+            <div className="flex justify-between items-center">
               <span className="text-[#64748b]">Keyword count</span>
-              <span className="font-semibold text-[#0f172a]">
-                {keywordCount} / 5
+              <span
+                className={`font-semibold ${
+                  keywordOverLimit ? "text-[#dc2626]" : "text-[#0f172a]"
+                }`}
+              >
+                {keywordLimit != null ? (
+                  <>
+                    {keywordCount} / {keywordLimit}
+                  </>
+                ) : keywordDisplayLimit != null ? (
+                  <>
+                    {keywordCount} / {keywordDisplayLimit}
+                    <span className="text-[11px] font-normal text-[#94a3b8]">
+                      {" "}
+                      (soft)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {keywordCount}
+                    <span className="text-[11px] font-normal text-[#94a3b8]">
+                      {" "}
+                      (no fixed limit)
+                    </span>
+                  </>
+                )}
               </span>
             </div>
-             {data.publisher === "Elsevier" && (
-            <div className="flex justify-between">
-              <span className="text-[#64748b]">Highlights length</span>
-              <span className="font-semibold text-[#0f172a]">
-                {data.highlights === ""
-                  ? "Pending"
-                  : data.highlights === "yes"
-                  ? "Required"
-                  : "Not required"}
-              </span>
-            </div>
-             )}
+
+            {/* Elsevier highlights: display-only (no input collected → never
+                affects the status bar). Prefer guideline-extracted values;
+                fall back to soft defaults and label accordingly. */}
+            {publisher === "Elsevier" && (
+              <>
+                <div className="flex justify-between items-center pt-3 border-t border-[#e2e8f0]">
+                  <span className="text-[#64748b]">Highlights points</span>
+                  <span className="font-semibold text-[#0f172a]">
+                    {data.highlights === "no"
+                      ? "Not required"
+                      : data.highlights === ""
+                      ? "Pending"
+                      : (
+                        <>
+                          Max {highlightCountLimit}
+                          {highlightCountExtracted == null && (
+                            <span className="text-[11px] font-normal text-[#94a3b8]">
+                              {" "}
+                              (soft)
+                            </span>
+                          )}
+                        </>
+                      )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#64748b]">Highlights length</span>
+                  <span className="font-semibold text-[#0f172a]">
+                    {data.highlights === "no" ? (
+                      "—"
+                    ) : (
+                      <>
+                        Max {highlightLengthLimit} chars
+                        {highlightLengthExtracted == null && (
+                          <span className="text-[11px] font-normal text-[#94a3b8]">
+                            {" "}
+                            (soft)
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="mt-4 flex items-start gap-2 bg-[#f0fdfa] border border-[#99f6e4] rounded-lg p-3">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              className="mt-0.5 flex-shrink-0"
-            >
-              <circle cx="7" cy="7" r="6" stroke="#0f766e" strokeWidth="1.3" />
-              <path
-                d="M7 6v4M7 4.3v.1"
-                stroke="#0f766e"
-                strokeWidth="1.3"
-                strokeLinecap="round"
+          {/* Status bar: green when all guideline-backed checks pass, red otherwise */}
+          <div className="mt-4">
+            <div className="flex justify-between text-[11px] mb-1.5">
+              <span
+                className={
+                  allPassing ? "text-[#0f766e] font-semibold" : "text-[#dc2626] font-semibold"
+                }
+              >
+                {totalApplicable === 0
+                  ? "No guideline limits found"
+                  : allPassing
+                  ? "Within all guideline limits"
+                  : `${passedCount} of ${totalApplicable} checks passing`}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-[#e2e8f0] overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  allPassing ? "bg-[#0f766e]" : "bg-[#dc2626]"
+                }`}
+                style={{ width: `${barPercent}%` }}
               />
-            </svg>
-            <p className="text-[12px] text-[#0f766e] leading-snug">
-              Your manuscript currently meets {completionPercent}% of the
-              selected journal's baseline formatting requirements.
-            </p>
+            </div>
+            {totalApplicable > 0 && (
+              <p className="text-[11px] text-[#94a3b8] mt-1.5 leading-snug">
+                Only limits extracted from the submitted guidelines are
+                enforced. Soft defaults are shown for reference only.
+              </p>
+            )}
           </div>
         </div>
 

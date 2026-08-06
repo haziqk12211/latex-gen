@@ -49,6 +49,12 @@ export type FormData = {
   authorContributions: string;
   creditStatement: string;
   generativeAI: string;
+  titleLength: string;
+  abstractLength: string;
+  pageCount: string;
+  keywordCount: string;
+  highlightCount: string;
+  highlightlength: string;
 };
 
 export type Author = {
@@ -86,13 +92,13 @@ const initialData: FormData = {
   abstract: "",
   conclusion: "",
   keySections: [
-  "Introduction",
-  "Literature Review",
-  "Methodology",
-  "Experimentation",
-  "Results",
-  "Discussion",
-],
+    "Introduction",
+    "Literature Review",
+    "Methodology",
+    "Experimentation",
+    "Results",
+    "Discussion",
+  ],
   bibliographyname: "",
   bibliographyText: "",
   dataAvailability: "",
@@ -103,6 +109,12 @@ const initialData: FormData = {
   authorContributions: "",
   creditStatement: "",
   generativeAI: "",
+  titleLength: "",
+  abstractLength: "",
+  pageCount: "",
+  keywordCount: "",
+  highlightCount: "",
+  highlightlength: "",
 };
 
 const NAV_ITEMS = [
@@ -115,8 +127,7 @@ const STEP_LABELS = ["Guidelines", "Technical Specs", "Manuscript"];
 
 export default function App() {
   const [page, setPage] = useState(1);
-  const [formData, setFormData] =
-    useState<FormData>(initialData);
+  const [formData, setFormData] = useState<FormData>(initialData);
 
   // Tracks which Page 2 fields the AI extractor couldn't find in the
   // pasted guidelines, so Page2 can flag them for the user to verify.
@@ -124,7 +135,9 @@ export default function App() {
 
   // Tracks which Page 3 declarations/statements the guidelines actually
   // require (true/false/null-unknown), so Page3 can pre-check them.
-  const [requirements, setRequirements] = useState<Record<string, boolean | null>>({});
+  const [requirements, setRequirements] = useState<
+    Record<string, boolean | null>
+  >({});
 
   const updateForm = (updates: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -137,7 +150,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-[#1e293b]">
-      {/* Top bar */}
+      {/* Top bar — sticky so it stays visible while scrolling */}
       <header className="bg-white border-b border-[#e2e8f0] sticky top-0 z-20">
         <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -157,8 +170,13 @@ export default function App() {
       </header>
 
       <div className="flex">
-        {/* Left sidebar */}
-        <aside className="w-64 shrink-0 min-h-[calc(100vh-4rem)] bg-[#f8fafc] border-r border-[#e2e8f0] flex flex-col justify-between px-4 py-6">
+        {/* Left sidebar — sticky below the header so nav + Save Draft
+            remain visible no matter how far the user scrolls the main form */}
+        <aside
+          className="w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] self-start
+            bg-[#f8fafc] border-r border-[#e2e8f0]
+            flex flex-col justify-between px-4 py-6 overflow-y-auto"
+        >
           <div>
             <div className="px-2 mb-6">
               <h2 className="text-base font-bold text-[#0f172a] leading-tight">
@@ -166,9 +184,7 @@ export default function App() {
                 <br />
                 Progress
               </h2>
-              <p className="text-sm text-[#64748b] mt-1">
-                Step {page} of 3
-              </p>
+              <p className="text-sm text-[#64748b] mt-1">Step {page} of 3</p>
             </div>
 
             <nav className="flex flex-col gap-1">

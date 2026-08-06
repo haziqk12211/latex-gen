@@ -20,7 +20,7 @@ const DOCUMENT_CLASSES_BY_PUBLISHER: Record<string, { value: string; label: stri
   ACM: [{ value: "acmart.cls", label: "acmart.cls" }],
   Elsevier: [{ value: "elsarticle.cls", label: "elsarticle.cls" }],
   Springer: [{ value: "sn-jnl.cls", label: "sn-jnl.cls" }],
-  Wiley: [{ value: "WileyNJDv5", label: "WileyNJDv5" }],
+  Wiley: [{ value: "WileyNJDv5.cls", label: "WileyNJDv5.cls" }],
 };
 
 const FALLBACK_DOCUMENT_CLASSES = [
@@ -46,17 +46,17 @@ const REFERENCING_STYLES_BY_PUBLISHER: Record<string, { value: string; label: st
     { value: "Numbered", label: "Numbered" },
   ],
   Wiley: [
-  { value: "AMA", label: "AMA (Numbered)" },
-  { value: "VANCOUVER", label: "Vancouver (Numbered)" },
-  { value: "MPS", label: "Math & Physical Sciences (Numbered)" },
-  { value: "AMS", label: "AMS (Numbered)" },
-  { value: "APS", label: "APS (Numbered)" },
-  { value: "WCMS", label: "Chemistry / Materials Sciences (Numbered)" },
-  { value: "HARVARD", label: "Harvard (Author-Year)" },
-  { value: "APA", label: "APA (Author-Year)" },
-  { value: "CHICAGO", label: "Chicago (Author-Year)" },
-  { value: "MLA", label: "MLA (Author-Year)" },
-],
+    { value: "AMA", label: "AMA (Numbered)" },
+    { value: "VANCOUVER", label: "Vancouver (Numbered)" },
+    { value: "MPS", label: "Math & Physical Sciences (Numbered)" },
+    { value: "AMS", label: "AMS (Numbered)" },
+    { value: "APS", label: "APS (Numbered)" },
+    { value: "WCMS", label: "Chemistry / Materials Sciences (Numbered)" },
+    { value: "HARVARD", label: "Harvard (Author-Year)" },
+    { value: "APA", label: "APA (Author-Year)" },
+    { value: "CHICAGO", label: "Chicago (Author-Year)" },
+    { value: "MLA", label: "MLA (Author-Year)" },
+  ],
   Springer: [
     { value: "APA", label: "APA" },
     { value: "VancouverNumbered", label: "Vancouver (Numbered)" },
@@ -80,6 +80,18 @@ const FALLBACK_REFERENCING_STYLES = [
 // Publishers where the referencing style is genuinely fixed to one option -
 // lock it automatically rather than presenting a dropdown with one choice.
 const PUBLISHERS_WITH_FIXED_REFERENCING_STYLE = ["IEEE"];
+
+/**
+ * Closed-select text tone: muted while the placeholder is showing, solid once
+ * a real value is chosen. Real <option> elements also set an explicit dark
+ * inline color so the open dropdown does not inherit the muted tone.
+ */
+function selectTone(value: string) {
+  return value === "" ? "text-[#94a3b8]" : "text-[#0f172a]";
+}
+
+const OPTION_SOLID = { color: "#0f172a" } as const;
+const OPTION_MUTED = { color: "#94a3b8" } as const;
 
 export default function Page2({
   data,
@@ -127,6 +139,26 @@ export default function Page2({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.publisher]);
+
+  // Pre-select "default" for every field that offers a Default option so the
+  // user can advance faster without having to open each dropdown.
+  useEffect(() => {
+    const defaults: Partial<FormData> = {};
+    if (data.marginTop === "") defaults.marginTop = "default";
+    if (data.marginBottom === "") defaults.marginBottom = "default";
+    if (data.marginLeft === "") defaults.marginLeft = "default";
+    if (data.marginRight === "") defaults.marginRight = "default";
+    if (data.fontFamily === "") defaults.fontFamily = "default";
+    if (data.fontSizeTitle === "") defaults.fontSizeTitle = "default";
+    if (data.fontSizeText === "") defaults.fontSizeText = "default";
+    if (data.fontSizeFigureCaption === "") defaults.fontSizeFigureCaption = "default";
+    if (data.fontSizeTableCaption === "") defaults.fontSizeTableCaption = "default";
+    if (Object.keys(defaults).length > 0) {
+      update(defaults);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const requiredFilled =
     data.columnLayout !== "" &&
     data.lineSpacing !== "" &&
@@ -198,15 +230,18 @@ export default function Page2({
               <Field label="Column Layout">
                 <Select
                   value={data.columnLayout}
+                  className={selectTone(data.columnLayout)}
                   onChange={(e) =>
                     update({
                       columnLayout: e.target.value as FormData["columnLayout"],
                     })
                   }
                 >
-                  <option value="">Select layout…</option>
-                  <option value="double">Double Column (IEEE Standard)</option>
-                  <option value="single">Single Column</option>
+                  <option value="" disabled style={OPTION_MUTED}>
+                    Select layout…
+                  </option>
+                  <option value="double" style={OPTION_SOLID}>Double Column (IEEE Standard)</option>
+                  <option value="single" style={OPTION_SOLID}>Single Column</option>
                 </Select>
                 <UnresolvedNote field="columnLayout" />
               </Field>
@@ -214,15 +249,18 @@ export default function Page2({
             <Field label="Line Spacing">
               <Select
                 value={data.lineSpacing}
+                className={selectTone(data.lineSpacing)}
                 onChange={(e) =>
                   update({
                     lineSpacing: e.target.value as FormData["lineSpacing"],
                   })
                 }
               >
-                <option value="">Select spacing…</option>
-                <option value="single">Single (1.0)</option>
-                <option value="double">Double (2.0)</option>
+                <option value="" disabled style={OPTION_MUTED}>
+                  Select spacing…
+                </option>
+                <option value="single" style={OPTION_SOLID}>Single (1.0)</option>
+                <option value="double" style={OPTION_SOLID}>Double (2.0)</option>
               </Select>
               <UnresolvedNote field="lineSpacing" />
             </Field>
@@ -244,18 +282,21 @@ export default function Page2({
                   </span>
                   <Select
                     value={data[key]}
+                    className={selectTone(data[key])}
                     onChange={(e) =>
                       update({ [key]: e.target.value } as Partial<FormData>)
                     }
                   >
-                    <option value="">Select…</option>
-                    <option value="default">Default</option>
-                    <option value="15">15 mm</option>
-                    <option value="20">20 mm</option>
-                    <option value="25">25 mm</option>
-                    <option value="30">30 mm</option>
-                    <option value="40">40 mm</option>
-                    <option value="50.8">50.8 mm</option>
+                    <option value="" disabled style={OPTION_MUTED}>
+                      Select…
+                    </option>
+                    <option value="default" style={OPTION_SOLID}>Default</option>
+                    <option value="15" style={OPTION_SOLID}>15 mm</option>
+                    <option value="20" style={OPTION_SOLID}>20 mm</option>
+                    <option value="25" style={OPTION_SOLID}>25 mm</option>
+                    <option value="30" style={OPTION_SOLID}>30 mm</option>
+                    <option value="40" style={OPTION_SOLID}>40 mm</option>
+                    <option value="50.8" style={OPTION_SOLID}>50.8 mm</option>
                   </Select>
                 </div>
               ))}
@@ -271,13 +312,16 @@ export default function Page2({
           <Field label="Font Family">
             <Select
               value={data.fontFamily}
+              className={selectTone(data.fontFamily)}
               onChange={(e) => update({ fontFamily: e.target.value })}
             >
-              <option value="">Select font…</option>
-              <option value="default">Default (publisher recommended)</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Arial">Arial</option>
-              <option value="Computer Modern">Computer Modern</option>
+              <option value="" disabled style={OPTION_MUTED}>
+                Select font…
+              </option>
+              <option value="default" style={OPTION_SOLID}>Default (publisher recommended)</option>
+              <option value="Times New Roman" style={OPTION_SOLID}>Times New Roman</option>
+              <option value="Arial" style={OPTION_SOLID}>Arial</option>
+              <option value="Computer Modern" style={OPTION_SOLID}>Computer Modern</option>
             </Select>
             <UnresolvedNote field="fontFamily" />
           </Field>
@@ -298,22 +342,25 @@ export default function Page2({
                   </span>
                   <Select
                     value={data[key]}
+                    className={selectTone(data[key])}
                     onChange={(e) =>
                       update({ [key]: e.target.value } as Partial<FormData>)
                     }
                   >
-                    <option value="">Select…</option>
-                    <option value="default">Default</option>
-                    <option value="8">8 pt</option>
-                    <option value="9">9 pt</option>
-                    <option value="10">10 pt</option>
-                    <option value="11">11 pt</option>
-                    <option value="12">12 pt</option>
-                    <option value="14">14 pt</option>
-                    <option value="16">16 pt</option>
-                    <option value="18">18 pt</option>
-                    <option value="20">20 pt</option>
-                    <option value="24">24 pt</option>
+                    <option value="" disabled style={OPTION_MUTED}>
+                      Select…
+                    </option>
+                    <option value="default" style={OPTION_SOLID}>Default</option>
+                    <option value="8" style={OPTION_SOLID}>8 pt</option>
+                    <option value="9" style={OPTION_SOLID}>9 pt</option>
+                    <option value="10" style={OPTION_SOLID}>10 pt</option>
+                    <option value="11" style={OPTION_SOLID}>11 pt</option>
+                    <option value="12" style={OPTION_SOLID}>12 pt</option>
+                    <option value="14" style={OPTION_SOLID}>14 pt</option>
+                    <option value="16" style={OPTION_SOLID}>16 pt</option>
+                    <option value="18" style={OPTION_SOLID}>18 pt</option>
+                    <option value="20" style={OPTION_SOLID}>20 pt</option>
+                    <option value="24" style={OPTION_SOLID}>24 pt</option>
                   </Select>
                 </div>
               ))}
@@ -342,6 +389,7 @@ export default function Page2({
               <Field label="Referencing Style">
                 <Select
                   value={data.referencingStyle}
+                  className={selectTone(data.referencingStyle)}
                   onChange={(e) =>
                     update({
                       referencingStyle: e.target
@@ -349,9 +397,11 @@ export default function Page2({
                     })
                   }
                 >
-                  <option value="">Select style…</option>
+                  <option value="" disabled style={OPTION_MUTED}>
+                    Select style…
+                  </option>
                   {availableReferencingStyles.map((style) => (
-                    <option key={style.value} value={style.value}>
+                    <option key={style.value} value={style.value} style={OPTION_SOLID}>
                       {style.label}
                     </option>
                   ))}
@@ -362,6 +412,7 @@ export default function Page2({
             <Field label="Keyword Separator">
               <Select
                 value={data.keywordSeparator}
+                className={selectTone(data.keywordSeparator)}
                 onChange={(e) =>
                   update({
                     keywordSeparator: e.target
@@ -369,9 +420,11 @@ export default function Page2({
                   })
                 }
               >
-                <option value="">Select separator…</option>
-                <option value="semicolon">Semicolon (;)</option>
-                <option value="comma">Comma (,)</option>
+                <option value="" disabled style={OPTION_MUTED}>
+                  Select separator…
+                </option>
+                <option value="semicolon" style={OPTION_SOLID}>Semicolon (;)</option>
+                <option value="comma" style={OPTION_SOLID}>Comma (,)</option>
               </Select>
               <UnresolvedNote field="keywordSeparator" />
             </Field>
@@ -381,11 +434,14 @@ export default function Page2({
             <Field label="Document Class">
               <Select
                 value={data.documentClass}
+                className={selectTone(data.documentClass)}
                 onChange={(e) => update({ documentClass: e.target.value })}
               >
-                <option value="">Select class…</option>
+                <option value="" disabled style={OPTION_MUTED}>
+                  Select class…
+                </option>
                 {availableDocumentClasses.map((cls) => (
-                  <option key={cls.value} value={cls.value}>
+                  <option key={cls.value} value={cls.value} style={OPTION_SOLID}>
                     {cls.label}
                   </option>
                 ))}
@@ -396,15 +452,18 @@ export default function Page2({
               <Field label="Highlights Required">
                 <Select
                   value={data.highlights}
+                  className={selectTone(data.highlights)}
                   onChange={(e) =>
                     update({
                       highlights: e.target.value as FormData["highlights"],
                     })
                   }
                 >
-                  <option value="">Select…</option>
-                  <option value="no">No</option>
-                  <option value="yes">Yes</option>
+                  <option value="" disabled style={OPTION_MUTED}>
+                    Select…
+                  </option>
+                  <option value="no" style={OPTION_SOLID}>No</option>
+                  <option value="yes" style={OPTION_SOLID}>Yes</option>
                 </Select>
                 <UnresolvedNote field="highlights" />
               </Field>
@@ -415,6 +474,7 @@ export default function Page2({
             <Field label="ORCID Required">
               <Select
                 value={data.orcidRequired}
+                className={selectTone(data.orcidRequired)}
                 onChange={(e) =>
                   update({
                     orcidRequired: e.target
@@ -422,9 +482,11 @@ export default function Page2({
                   })
                 }
               >
-                <option value="">Select…</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
+                <option value="" disabled style={OPTION_MUTED}>
+                  Select…
+                </option>
+                <option value="yes" style={OPTION_SOLID}>Yes</option>
+                <option value="no" style={OPTION_SOLID}>No</option>
               </Select>
               <UnresolvedNote field="orcidRequired" />
             </Field>
